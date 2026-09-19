@@ -1,0 +1,70 @@
+{
+  "tabs": {
+    "home": "Start",
+    "explore": "Entdecken",
+    "map": "Karte",
+    "scan": "Scan",
+    "profile": "Profil"
+  },
+  "branding": {
+    "kicker": "Ihr intelligenter Kulturführer",
+    "subtitle": "Kamerun anders entdecken",
+    "cta": "Abenteuer starten"
+  },
+  "home": {
+    "greeting": "Hallo",
+    "title": "Bereit, Kamerun zu erkunden?",
+    "aiBadge": "KI-Erkennung",
+    "scanTitle": "Objekt oder Denkmal scannen",
+    "scanSub": "Richten Sie die Kamera aus, um die Geschichte zu entdecken",
+    "recommendations": "Empfehlungen",
+    "loadingSites": "Wichtige Orte in Yaoundé werden geladen..."
+  },
+  "explore": {
+    "title": "Entdeckung",
+    "subtitle": "Kulturpfade und Sammlungen — demnächst."
+  },
+  "map": {
+    "title": "Karte",
+    "subtitle": "Nahegelegene Orte per GPS — demnächst."
+  },
+  "profile": {
+    "title": "Profil",
+    "subtitle": "Sprache, Interessen, Verlauf und Favoriten.",
+    "language": "App-Sprache"
+  },
+  "scan": {
+    "cameraPermission": "Kamerazugriff erforderlich.",
+    "allowCamera": "Kamera erlauben",
+    "cameraPaused": "Kamera pausiert",
+    "analyzing": "KI-Bildanalyse...",
+    "searching": "Suche nach Objekten & Denkmälern...",
+    "scanning": "Scan läuft",
+    "importGallery": "Aus Galerie importieren",
+    "notRecognized": "Nicht erkannt",
+    "notRecognizedMsg": "Kein Denkmal oder Kulturobjekt erkannt.",
+    "errorTitle": "Fehler",
+    "errorServer": "Analyseserver nicht erreichbar.",
+    "errorAudio": "Audiofehler",
+    "errorAudioMsg": "ElevenLabs-Sprachführung kann nicht abgespielt werden.",
+    "guideTitle": "ElevenLabs-Sprachführung",
+    "guideWaiting": "Warte auf Bestätigung",
+    "guideReady": "High-Fidelity-Wiedergabe · {{lang}}",
+    "confirmBanner": "Bestätigen, um die Sprachführung zu starten",
+    "yes": "Ja",
+    "no": "Nein",
+    "sectionOrigin": "Erklärung & Herkunft",
+    "sectionHistory": "Geschichte & Erbe",
+    "sectionAnecdote": "Anekdote",
+    "rescan": "Scan neu starten",
+    "prompt": "Möchten Sie die Audio-Beschreibung dieses Denkmals hören?"
+  },
+  "languages": {
+    "fr": "Français",
+    "en": "English",
+    "es": "Español",
+    "de": "Deutsch",
+    "zh": "中文",
+    "ar": "العربية"
+  }
+}

@@ -4,14 +4,12 @@ import {
   Text,
   View,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
   ScrollView,
   Modal,
   Alert,
   Animated,
   Easing,
-  Platform,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
@@ -27,12 +25,24 @@ import axios from 'axios';
 import Constants from 'expo-constants';
 import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
+import { resolveAppLanguage, SUPPORTED_LANGUAGES } from '../i18n';
 
 const debuggerHost =
   Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoGo?.developer?.tool;
 const localhost = debuggerHost ? debuggerHost.split(':')[0] : 'localhost';
 const API_URL = `http://${localhost}:8000`;
 const CONFIDENCE_THRESHOLD = 0.6;
+
+/** Invites vocales embarquées (0 ms — aucun réseau). */
+const LOCAL_PROMPT_ASSETS = {
+  fr: require('../../assets/audio/prompt_fr.mp3'),
+  en: require('../../assets/audio/prompt_en.mp3'),
+  es: require('../../assets/audio/prompt_es.mp3'),
+  de: require('../../assets/audio/prompt_de.mp3'),
+  zh: require('../../assets/audio/prompt_zh.mp3'),
+  ar: require('../../assets/audio/prompt_ar.mp3'),
+};
 
 function arrayBufferToBase64(buffer) {
   const bytes = new Uint8Array(buffer);
@@ -44,7 +54,17 @@ function arrayBufferToBase64(buffer) {
   return global.btoa(binary);
 }
 
+function guideTextFromArtifact(artifact) {
+  if (!artifact) return '';
+  return [artifact.explanation, artifact.history, artifact.anecdotes]
+    .filter(Boolean)
+    .join('\n\n');
+}
+
 export default function ScanScreen() {
+  const { t, i18n } = useTranslation();
+  const userLanguage = resolveAppLanguage(i18n.language);
+
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const tabClearance = 72 + Math.min(insets.bottom, 14);
@@ -56,18 +76,33 @@ export default function ScanScreen() {
   const [analysisResult, setAnalysisResult] = useState(null);
   const [score, setScore] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [userLang, setUserLang] = useState('fr');
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [loadingAudio, setLoadingAudio] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0);
   const [audioReady, setAudioReady] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [showInviteBanner, setShowInviteBanner] = useState(false);
+  const [mainAudioUri, setMainAudioUri] = useState(null);
+  const [isWaitingForPrefetch, setIsWaitingForPrefetch] = useState(false);
 
   const player = useAudioPlayer(null);
   const audioStatus = useAudioPlayerStatus(player);
 
   const isAnalyzingRef = useRef(false);
+  const audioRoleRef = useRef(null); // 'prompt' | 'guide'
+  const promptStartedForIdRef = useRef(null);
+  const bannerTimerRef = useRef(null);
+  const analysisRef = useRef(null);
+  const langRef = useRef(userLanguage);
+  const mainAudioUriRef = useRef(null);
+  const waitingForPrefetchRef = useRef(false);
+  const prefetchGenRef = useRef(0);
   const scanPulse = useRef(new Animated.Value(0.4)).current;
+  const micPulse = useRef(new Animated.Value(0.35)).current;
+
+  analysisRef.current = analysisResult;
+  langRef.current = userLanguage;
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -79,6 +114,18 @@ export default function ScanScreen() {
     if (isLiveScanning && isFocused) loop.start();
     return () => loop.stop();
   }, [isLiveScanning, isFocused, scanPulse]);
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(micPulse, { toValue: 1, duration: 550, useNativeDriver: true }),
+        Animated.timing(micPulse, { toValue: 0.3, duration: 550, useNativeDriver: true }),
+      ])
+    );
+    if (isListening) loop.start();
+    else micPulse.setValue(0.35);
+    return () => loop.stop();
+  }, [isListening, micPulse]);
 
   useEffect(() => {
     let interval = null;
@@ -100,24 +147,143 @@ export default function ScanScreen() {
       setAudioProgress(audioStatus.currentTime / audioStatus.duration);
     }
     setIsPlaying(!!audioStatus.playing);
+
     if (audioStatus.didJustFinish) {
       setIsPlaying(false);
       setAudioProgress(0);
+      audioRoleRef.current = null;
     }
   }, [audioStatus]);
 
-  if (!permission) return <View style={styles.container} />;
+  // Après un scan réussi : bannière + invite locale + prefetch guide en parallèle
+  useEffect(() => {
+    if (!modalVisible || !analysisResult?.id) return;
+    if (promptStartedForIdRef.current === analysisResult.id) return;
+    promptStartedForIdRef.current = analysisResult.id;
+    handlePostScanInteractivePrompt();
+  }, [modalVisible, analysisResult?.id]);
 
-  if (!permission.granted) {
-    return (
-      <View style={styles.centeredContainer}>
-        <Text style={styles.textDark}>Permission d'accéder à la caméra requise.</Text>
-        <TouchableOpacity style={styles.btnPrimary} onPress={requestPermission}>
-          <Text style={styles.btnTextLight}>Autoriser la caméra</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  useEffect(() => {
+    return () => {
+      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+    };
+  }, []);
+
+  const hideInviteBanner = () => {
+    if (bannerTimerRef.current) {
+      clearTimeout(bannerTimerRef.current);
+      bannerTimerRef.current = null;
+    }
+    setShowInviteBanner(false);
+    setIsListening(false);
+  };
+
+  const playGuideFromUri = async (uri) => {
+    await setAudioModeAsync({ playsInSilentMode: true });
+    audioRoleRef.current = 'guide';
+    player.replace({ uri });
+    player.play();
+    setIsPlaying(true);
+    setAudioReady(true);
+    setLoadingAudio(false);
+    setIsWaitingForPrefetch(false);
+  };
+
+  /** Prefetch guide TTS en arrière-plan pendant l'invite (écriture cache téléphone). */
+  const prefetchMainAudio = async (text) => {
+    if (!text) return;
+    const gen = prefetchGenRef.current;
+    const lang = langRef.current || 'fr';
+    const fileUri = `${FileSystem.cacheDirectory}monument_description_${lang}.mp3`;
+
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/tts/generate`,
+        { text },
+        { responseType: 'arraybuffer', timeout: 60000 }
+      );
+      if (gen !== prefetchGenRef.current) return;
+
+      const base64 = arrayBufferToBase64(response.data);
+      await FileSystem.writeAsStringAsync(fileUri, base64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      if (gen !== prefetchGenRef.current) return;
+
+      mainAudioUriRef.current = fileUri;
+      setMainAudioUri(fileUri);
+      setAudioReady(true);
+
+      if (waitingForPrefetchRef.current) {
+        waitingForPrefetchRef.current = false;
+        await playGuideFromUri(fileUri);
+      }
+    } catch (error) {
+      console.error('Prefetch guide vocal :', error?.response?.status || error.message);
+      if (waitingForPrefetchRef.current && gen === prefetchGenRef.current) {
+        waitingForPrefetchRef.current = false;
+        setIsWaitingForPrefetch(false);
+        setLoadingAudio(false);
+        Alert.alert(t('scan.errorAudio'), t('scan.errorAudioMsg'));
+      }
+    }
+  };
+
+  const handlePostScanInteractivePrompt = async () => {
+    // Reset état audio du monument précédent
+    prefetchGenRef.current += 1;
+    mainAudioUriRef.current = null;
+    setMainAudioUri(null);
+    setAudioReady(false);
+    waitingForPrefetchRef.current = false;
+    setIsWaitingForPrefetch(false);
+    setLoadingAudio(false);
+
+    // 1) Bannière Oui / Non — reste affichée jusqu'à interaction (pas de timeout)
+    setShowInviteBanner(true);
+    setIsListening(true);
+    if (bannerTimerRef.current) {
+      clearTimeout(bannerTimerRef.current);
+      bannerTimerRef.current = null;
+    }
+
+    // 3) Prefetch guide SANS await — parallèle à l'invite
+    prefetchMainAudio(guideTextFromArtifact(analysisRef.current));
+
+    // 2) Lecture invite locale (0 ms réseau)
+    try {
+      const lang = langRef.current || 'fr';
+      const source = LOCAL_PROMPT_ASSETS[lang] || LOCAL_PROMPT_ASSETS.fr;
+      await setAudioModeAsync({ playsInSilentMode: true });
+      audioRoleRef.current = 'prompt';
+      player.replace(source);
+      player.play();
+      setIsPlaying(true);
+    } catch (error) {
+      console.error("Erreur invite vocale locale :", error?.message || error);
+    }
+  };
+
+  /** Oui : lecture instantanée si le prefetch est prêt, sinon attente du cache. */
+  const handleConfirmPlay = async () => {
+    hideInviteBanner();
+    try {
+      if (audioRoleRef.current === 'prompt') {
+        player.pause();
+        await player.seekTo(0);
+      }
+    } catch (_) {}
+
+    const uri = mainAudioUriRef.current;
+    if (uri) {
+      await playGuideFromUri(uri);
+      return;
+    }
+
+    waitingForPrefetchRef.current = true;
+    setIsWaitingForPrefetch(true);
+    setLoadingAudio(true);
+  };
 
   const captureAndAnalyzeLive = async () => {
     if (isAnalyzingRef.current || !cameraRef || !isFocused || modalVisible) return;
@@ -156,7 +322,7 @@ export default function ScanScreen() {
       name: 'scan.jpg',
       type: 'image/jpeg',
     });
-    formData.append('lang', userLang);
+    formData.append('lang', langRef.current || 'fr');
 
     try {
       const response = await axios.post(`${API_URL}/api/vision/analyze`, formData, {
@@ -170,12 +336,12 @@ export default function ScanScreen() {
         setIsLiveScanning(false);
         setModalVisible(true);
       } else if (isManual) {
-        Alert.alert('Non reconnu', "Aucun monument ou objet du patrimoine n'a été identifié.");
+        Alert.alert(t('scan.notRecognized'), t('scan.notRecognizedMsg'));
         setIsLiveScanning(true);
       }
     } catch (error) {
       if (isManual) {
-        Alert.alert('Erreur', "Impossible de contacter le serveur d'analyse.");
+        Alert.alert(t('scan.errorTitle'), t('scan.errorServer'));
         setIsLiveScanning(true);
       }
     }
@@ -186,76 +352,86 @@ export default function ScanScreen() {
       player.pause();
       await player.seekTo(0);
     } catch (_) {}
+    audioRoleRef.current = null;
     setIsPlaying(false);
     setAudioProgress(0);
   };
 
+  // Contrôle tactile Play / Pause (toujours disponible)
   const playElevenLabsAudio = async () => {
     if (!analysisResult?.explanation) return;
 
     try {
-      // Pause / reprise si l'audio est déjà chargé
-      if (audioReady) {
-        if (audioStatus.playing) {
+      if (showInviteBanner || isListening) hideInviteBanner();
+
+      if (audioReady && mainAudioUriRef.current) {
+        if (audioStatus.playing && audioRoleRef.current === 'guide') {
           player.pause();
           setIsPlaying(false);
         } else {
-          player.play();
-          setIsPlaying(true);
+          await playGuideFromUri(mainAudioUriRef.current);
         }
         return;
       }
 
-      setLoadingAudio(true);
-
-      const speakText = [analysisResult.explanation, analysisResult.history]
-        .filter(Boolean)
-        .join('\n\n');
-
-      // 1. Flux MP3 binaire depuis FastAPI (voix = ELEVENLABS_VOICE_ID côté serveur)
-      const response = await axios.post(
-        `${API_URL}/api/tts/generate`,
-        { text: speakText },
-        { responseType: 'arraybuffer', timeout: 60000 }
-      );
-
-      // 2. Conversion binaire → Base64 (pas de Buffer en React Native)
-      const base64Audio = arrayBufferToBase64(response.data);
-      const fileUri = `${FileSystem.cacheDirectory}elevenlabs_guide.mp3`;
-
-      // 3. Écriture cache via API legacy Expo SDK 54+
-      await FileSystem.writeAsStringAsync(fileUri, base64Audio, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-
-      // 4. Lecture via expo-audio (SDK 57 — pas expo-av)
-      await setAudioModeAsync({ playsInSilentMode: true });
-      player.replace({ uri: fileUri });
-      player.play();
-      setAudioReady(true);
-      setIsPlaying(true);
+      await handleConfirmPlay();
     } catch (error) {
-      console.error('Erreur lecture audio ElevenLabs :', error?.response?.status || error.message);
-      Alert.alert('Erreur Audio', 'Impossible de lire la synthèse vocale ElevenLabs.');
-    } finally {
-      setLoadingAudio(false);
+      console.error(error);
+      Alert.alert(t('scan.errorAudio'), t('scan.errorAudioMsg'));
     }
   };
 
+  const confirmYes = async () => {
+    await handleConfirmPlay();
+  };
+
+  const confirmNo = async () => {
+    hideInviteBanner();
+    try {
+      if (audioRoleRef.current === 'prompt') {
+        player.pause();
+        await player.seekTo(0);
+      }
+    } catch (_) {}
+    audioRoleRef.current = null;
+    setIsPlaying(false);
+  };
+
   const closeModal = async () => {
+    hideInviteBanner();
+    prefetchGenRef.current += 1;
+    waitingForPrefetchRef.current = false;
+    mainAudioUriRef.current = null;
+    setMainAudioUri(null);
+    setIsWaitingForPrefetch(false);
+    setLoadingAudio(false);
     await stopAudio();
     setAudioReady(false);
     setModalVisible(false);
     setAnalysisResult(null);
     setScore(null);
+    promptStartedForIdRef.current = null;
     setIsLiveScanning(true);
   };
 
-  const cycleLang = () => {
-    const order = ['fr', 'en', 'de'];
-    const next = order[(order.indexOf(userLang) + 1) % order.length];
-    setUserLang(next);
+  const cycleLang = async () => {
+    const idx = SUPPORTED_LANGUAGES.indexOf(userLanguage);
+    const next = SUPPORTED_LANGUAGES[(idx + 1) % SUPPORTED_LANGUAGES.length];
+    await i18n.changeLanguage(next);
   };
+
+  if (!permission) return <View style={styles.container} />;
+
+  if (!permission.granted) {
+    return (
+      <View style={styles.centeredContainer}>
+        <Text style={styles.textDark}>{t('scan.cameraPermission')}</Text>
+        <TouchableOpacity style={styles.btnPrimary} onPress={requestPermission}>
+          <Text style={styles.btnTextLight}>{t('scan.allowCamera')}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -267,13 +443,13 @@ export default function ScanScreen() {
               <BlurView intensity={40} tint="dark" style={[styles.statusBadge, scanning && styles.statusBadgeActive]}>
                 <ActivityIndicator size="small" color="#a7f3d0" style={{ marginRight: 8 }} />
                 <Animated.Text style={[styles.statusText, { opacity: scanPulse }]}>
-                  {scanning ? "Analyse IA de l'image..." : 'Recherche d’objets & monuments...'}
+                  {scanning ? t('scan.analyzing') : t('scan.searching')}
                 </Animated.Text>
               </BlurView>
               <TouchableOpacity onPress={cycleLang} activeOpacity={0.85}>
                 <BlurView intensity={40} tint="dark" style={styles.langBtn}>
                   <Ionicons name="globe-outline" size={16} color="#a7f3d0" />
-                  <Text style={styles.langText}>{userLang.toUpperCase()}</Text>
+                  <Text style={styles.langText}>{userLanguage.toUpperCase()}</Text>
                 </BlurView>
               </TouchableOpacity>
             </View>
@@ -281,7 +457,7 @@ export default function ScanScreen() {
         </View>
       ) : (
         <View style={styles.cameraPlaceholder}>
-          <Text style={styles.textDark}>Caméra en pause</Text>
+          <Text style={styles.textDark}>{t('scan.cameraPaused')}</Text>
         </View>
       )}
 
@@ -289,7 +465,7 @@ export default function ScanScreen() {
         <BlurView intensity={45} tint="dark" style={[styles.scanningCard, { bottom: tabClearance + 70 }]}>
           <View style={styles.glassInner}>
             <ActivityIndicator size="large" color="#ffffff" />
-            <Text style={styles.scanningTitle}>Scan en cours</Text>
+            <Text style={styles.scanningTitle}>{t('scan.scanning')}</Text>
           </View>
         </BlurView>
       )}
@@ -298,7 +474,7 @@ export default function ScanScreen() {
         <TouchableOpacity onPress={pickImage} disabled={scanning} activeOpacity={0.9}>
           <BlurView intensity={40} tint="dark" style={styles.btnGallery}>
             <Ionicons name="images" size={18} color="#ffffff" />
-            <Text style={styles.btnText}>Importer de la galerie</Text>
+            <Text style={styles.btnText}>{t('scan.importGallery')}</Text>
           </BlurView>
         </TouchableOpacity>
       </View>
@@ -332,12 +508,37 @@ export default function ScanScreen() {
 
                   <Text style={styles.modalTitle}>{analysisResult.title}</Text>
 
+                  {(showInviteBanner || isListening) && (
+                    <BlurView intensity={35} tint="dark" style={styles.listenBanner}>
+                      <Animated.View style={{ opacity: micPulse }}>
+                        <Ionicons name="mic" size={22} color="#6ee7b7" />
+                      </Animated.View>
+                      <Text style={styles.listenText}>{t('scan.confirmBanner')}</Text>
+                      <View style={styles.listenActions}>
+                        <TouchableOpacity style={styles.yesBtn} onPress={confirmYes}>
+                          <Text style={styles.yesBtnText}>{t('scan.yes')}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.noBtn} onPress={confirmNo}>
+                          <Text style={styles.noBtnText}>{t('scan.no')}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </BlurView>
+                  )}
+
                   <View style={styles.audioPlayerCard}>
                     <View style={styles.audioInfo}>
                       <Ionicons name="volume-high" size={22} color="#6ee7b7" />
                       <View style={{ marginLeft: 10, flex: 1 }}>
-                        <Text style={styles.audioTitle}>Guide vocal ElevenLabs</Text>
-                        <Text style={styles.audioSub}>Écoute haute fidélité · {userLang.toUpperCase()}</Text>
+                        <Text style={styles.audioTitle}>{t('scan.guideTitle')}</Text>
+                        <Text style={styles.audioSub}>
+                          {isWaitingForPrefetch
+                            ? t('scan.guideWaiting')
+                            : audioReady
+                              ? t('scan.guideReady', { lang: userLanguage.toUpperCase() })
+                              : showInviteBanner
+                                ? t('scan.guideWaiting')
+                                : t('scan.guideReady', { lang: userLanguage.toUpperCase() })}
+                        </Text>
                         <View style={styles.progressTrack}>
                           <View style={[styles.progressFill, { width: `${Math.round(audioProgress * 100)}%` }]} />
                         </View>
@@ -350,7 +551,7 @@ export default function ScanScreen() {
                         onPress={playElevenLabsAudio}
                         disabled={loadingAudio}
                       >
-                        {loadingAudio ? (
+                        {loadingAudio || isWaitingForPrefetch ? (
                           <ActivityIndicator size="small" color="#ffffff" />
                         ) : (
                           <Ionicons name={isPlaying ? 'pause' : 'play'} size={20} color="#ffffff" />
@@ -362,26 +563,26 @@ export default function ScanScreen() {
                     </View>
                   </View>
 
-                  <Text style={styles.sectionHeading}>Explication & Origine</Text>
+                  <Text style={styles.sectionHeading}>{t('scan.sectionOrigin')}</Text>
                   <Text style={styles.bodyText}>{analysisResult.explanation}</Text>
 
                   {!!analysisResult.history && (
                     <>
-                      <Text style={styles.sectionHeading}>Histoire & Patrimoine</Text>
+                      <Text style={styles.sectionHeading}>{t('scan.sectionHistory')}</Text>
                       <Text style={styles.bodyText}>{analysisResult.history}</Text>
                     </>
                   )}
 
                   {!!analysisResult.anecdotes && (
                     <>
-                      <Text style={styles.sectionHeading}>Anecdote</Text>
+                      <Text style={styles.sectionHeading}>{t('scan.sectionAnecdote')}</Text>
                       <Text style={styles.bodyText}>{analysisResult.anecdotes}</Text>
                     </>
                   )}
 
                   <TouchableOpacity style={styles.btnRescan} onPress={closeModal}>
                     <Ionicons name="refresh" size={18} color="#ffffff" />
-                    <Text style={styles.btnTextLight}>Relancer le scan</Text>
+                    <Text style={styles.btnTextLight}>{t('scan.rescan')}</Text>
                   </TouchableOpacity>
                 </ScrollView>
               )}
@@ -569,6 +770,39 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 5,
   },
+  listenBanner: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(110, 231, 183, 0.35)',
+    backgroundColor: 'rgba(5, 150, 105, 0.18)',
+    alignItems: 'center',
+  },
+  listenText: {
+    color: '#ecfdf5',
+    fontWeight: '700',
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  listenActions: { flexDirection: 'row', gap: 10 },
+  yesBtn: {
+    backgroundColor: '#059669',
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    borderRadius: 22,
+  },
+  yesBtnText: { color: '#fff', fontWeight: '800' },
+  noBtn: {
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    borderRadius: 22,
+  },
+  noBtnText: { color: '#fff', fontWeight: '700' },
   audioPlayerCard: {
     backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 16,

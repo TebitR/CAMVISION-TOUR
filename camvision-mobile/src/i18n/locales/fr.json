@@ -1,0 +1,70 @@
+{
+  "tabs": {
+    "home": "Accueil",
+    "explore": "Explorer",
+    "map": "Carte",
+    "scan": "Scan",
+    "profile": "Profil"
+  },
+  "branding": {
+    "kicker": "Votre guide culturel intelligent",
+    "subtitle": "Explorez le Cameroun autrement",
+    "cta": "Commencer l'aventure"
+  },
+  "home": {
+    "greeting": "Bonjour",
+    "title": "Prêt à explorer le Cameroun ?",
+    "aiBadge": "Reconnaissance IA",
+    "scanTitle": "Scanner un objet ou monument",
+    "scanSub": "Pointez votre caméra pour découvrir son histoire",
+    "recommendations": "Recommandations",
+    "loadingSites": "Chargement des sites phares de Yaoundé..."
+  },
+  "explore": {
+    "title": "Découverte",
+    "subtitle": "Parcours et collections patrimoniales — bientôt disponibles."
+  },
+  "map": {
+    "title": "Carte",
+    "subtitle": "Sites à proximité basés sur votre GPS — bientôt disponibles."
+  },
+  "profile": {
+    "title": "Profil",
+    "subtitle": "Langue, centres d'intérêt, historique et favoris.",
+    "language": "Langue de l'application"
+  },
+  "scan": {
+    "cameraPermission": "Permission d'accéder à la caméra requise.",
+    "allowCamera": "Autoriser la caméra",
+    "cameraPaused": "Caméra en pause",
+    "analyzing": "Analyse IA de l'image...",
+    "searching": "Recherche d’objets & monuments...",
+    "scanning": "Scan en cours",
+    "importGallery": "Importer de la galerie",
+    "notRecognized": "Non reconnu",
+    "notRecognizedMsg": "Aucun monument ou objet du patrimoine n'a été identifié.",
+    "errorTitle": "Erreur",
+    "errorServer": "Impossible de contacter le serveur d'analyse.",
+    "errorAudio": "Erreur Audio",
+    "errorAudioMsg": "Impossible de lire la synthèse vocale ElevenLabs.",
+    "guideTitle": "Guide vocal ElevenLabs",
+    "guideWaiting": "En attente de confirmation",
+    "guideReady": "Écoute haute fidélité · {{lang}}",
+    "confirmBanner": "Confirmez pour lancer le guide vocal",
+    "yes": "Oui",
+    "no": "Non",
+    "sectionOrigin": "Explication & Origine",
+    "sectionHistory": "Histoire & Patrimoine",
+    "sectionAnecdote": "Anecdote",
+    "rescan": "Relancer le scan",
+    "prompt": "Voulez-vous écouter la description vocale de ce monument ?"
+  },
+  "languages": {
+    "fr": "Français",
+    "en": "English",
+    "es": "Español",
+    "de": "Deutsch",
+    "zh": "中文",
+    "ar": "العربية"
+  }
+}

@@ -3,18 +3,19 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 const TAB_META = {
-  Accueil: { icon: 'home', label: 'Accueil' },
-  Découverte: { icon: 'compass', label: 'Explorer' },
-  Carte: { icon: 'map', label: 'Carte' },
-  Scan: { icon: 'scan', label: 'Scan' },
-  Profil: { icon: 'person', label: 'Profil' },
+  Accueil: { icon: 'home', labelKey: 'tabs.home' },
+  Découverte: { icon: 'compass', labelKey: 'tabs.explore' },
+  Carte: { icon: 'map', labelKey: 'tabs.map' },
+  Scan: { icon: 'scan', labelKey: 'tabs.scan' },
+  Profil: { icon: 'person', labelKey: 'tabs.profile' },
 };
 
 export default function FloatingTabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
-  // Rapprocher du bas : petit espace au-dessus de l'indicateur home
+  const { t } = useTranslation();
   const bottomOffset = Platform.OS === 'ios' ? Math.min(insets.bottom, 14) : 10;
 
   return (
@@ -22,9 +23,10 @@ export default function FloatingTabBar({ state, descriptors, navigation }) {
       <BlurView intensity={70} tint="light" style={styles.blur}>
         <View style={styles.inner}>
           {state.routes.map((route, index) => {
-            const meta = TAB_META[route.name] || { icon: 'ellipse', label: route.name };
+            const meta = TAB_META[route.name] || { icon: 'ellipse', labelKey: null };
             const isFocused = state.index === index;
             const iconName = isFocused ? meta.icon : `${meta.icon}-outline`;
+            const label = meta.labelKey ? t(meta.labelKey) : route.name;
 
             const onPress = () => {
               const event = navigation.emit({
@@ -53,7 +55,7 @@ export default function FloatingTabBar({ state, descriptors, navigation }) {
                     color={isFocused ? '#059669' : '#64748b'}
                   />
                   <Text style={[styles.label, isFocused && styles.labelActive]} numberOfLines={1}>
-                    {meta.label}
+                    {label}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -78,47 +80,25 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.12,
     shadowRadius: 14,
-    elevation: 10,
-    ...Platform.select({
-      android: { backgroundColor: 'rgba(255, 255, 255, 0.94)' },
-      default: {},
-    }),
+    elevation: 8,
   },
-  blur: {
-    borderRadius: 28,
-    overflow: 'hidden',
-  },
+  blur: { overflow: 'hidden' },
   inner: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 4,
-    paddingVertical: 5,
-    backgroundColor: 'rgba(255, 255, 255, 0.72)',
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    paddingVertical: 8,
+    paddingHorizontal: 6,
   },
-  item: {
-    flex: 1,
-    alignItems: 'center',
-  },
+  item: { flex: 1, alignItems: 'center' },
   itemInner: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 5,
-    paddingHorizontal: 6,
-    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 18,
     minWidth: 56,
   },
-  itemActive: {
-    backgroundColor: 'rgba(16, 185, 129, 0.14)',
-  },
-  label: {
-    marginTop: 1,
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#64748b',
-  },
-  labelActive: {
-    color: '#047857',
-    fontWeight: '700',
-  },
+  itemActive: { backgroundColor: 'rgba(16, 185, 129, 0.12)' },
+  label: { marginTop: 2, fontSize: 10, color: '#64748b', fontWeight: '600' },
+  labelActive: { color: '#059669', fontWeight: '800' },
 });

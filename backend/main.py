@@ -216,7 +216,9 @@ async def analyze_and_explain(
                 "message": "Aucun artefact ou monument reconnu avec une confiance suffisante.",
             }
 
-        lang_key = (lang or "fr").lower()[:2]
+        lang_key = (lang or "fr").lower().replace("_", "-").split("-")[0]
+        if lang_key not in ("fr", "en", "es", "de", "zh", "ar"):
+            lang_key = "fr"
         title = obj.localized(obj.name, lang_key, "Artefact")
         explanation = obj.localized(obj.description, lang_key, "")
         history = obj.localized(obj.history, lang_key, "")

@@ -1,17 +1,18 @@
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 export default function ExploreScreen() {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.container}>
       <View style={styles.iconWrap}>
         <Ionicons name="compass" size={36} color="#059669" />
       </View>
-      <Text style={styles.title}>Explorer</Text>
-      <Text style={styles.subtitle}>
-        Catalogue filtrable (Monuments, Musées, Objets) — à venir au prochain jalon.
-      </Text>
+      <Text style={styles.title}>{t('explore.title')}</Text>
+      <Text style={styles.subtitle}>{t('explore.subtitle')}</Text>
     </View>
   );
 }

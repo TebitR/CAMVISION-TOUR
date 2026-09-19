@@ -1,17 +1,18 @@
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 export default function MapScreen() {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.container}>
       <View style={styles.iconWrap}>
         <Ionicons name="map" size={36} color="#059669" />
       </View>
-      <Text style={styles.title}>Carte</Text>
-      <Text style={styles.subtitle}>
-        Carte Mapbox interactive centrée sur votre position et les POI — à venir.
-      </Text>
+      <Text style={styles.title}>{t('map.title')}</Text>
+      <Text style={styles.subtitle}>{t('map.subtitle')}</Text>
     </View>
   );
 }

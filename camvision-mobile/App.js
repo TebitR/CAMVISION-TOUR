@@ -3,7 +3,9 @@ import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
+import './src/i18n';
 import HomeScreen from './src/screens/HomeScreen';
 import ExploreScreen from './src/screens/ExploreScreen';
 import MapScreen from './src/screens/MapScreen';
@@ -28,6 +30,8 @@ const navTheme = {
 };
 
 function MainTabNavigator() {
+  const { t } = useTranslation();
+
   return (
     <Tab.Navigator
       tabBar={(props) => <FloatingTabBar {...props} />}
@@ -35,11 +39,11 @@ function MainTabNavigator() {
         headerShown: false,
       }}
     >
-      <Tab.Screen name="Accueil" component={HomeScreen} />
-      <Tab.Screen name="Découverte" component={ExploreScreen} />
-      <Tab.Screen name="Carte" component={MapScreen} />
-      <Tab.Screen name="Scan" component={ScanScreen} />
-      <Tab.Screen name="Profil" component={ProfileScreen} />
+      <Tab.Screen name="Accueil" component={HomeScreen} options={{ title: t('tabs.home') }} />
+      <Tab.Screen name="Découverte" component={ExploreScreen} options={{ title: t('tabs.explore') }} />
+      <Tab.Screen name="Carte" component={MapScreen} options={{ title: t('tabs.map') }} />
+      <Tab.Screen name="Scan" component={ScanScreen} options={{ title: t('tabs.scan') }} />
+      <Tab.Screen name="Profil" component={ProfileScreen} options={{ title: t('tabs.profile') }} />
     </Tab.Navigator>
   );
 }

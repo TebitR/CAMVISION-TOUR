@@ -1,0 +1,70 @@
+{
+  "tabs": {
+    "home": "الرئيسية",
+    "explore": "استكشاف",
+    "map": "الخريطة",
+    "scan": "مسح",
+    "profile": "الملف"
+  },
+  "branding": {
+    "kicker": "دليلك الثقافي الذكي",
+    "subtitle": "اكتشف الكاميرون بطريقة مختلفة",
+    "cta": "ابدأ المغامرة"
+  },
+  "home": {
+    "greeting": "مرحباً",
+    "title": "هل أنت مستعد لاستكشاف الكاميرون؟",
+    "aiBadge": "تعرّف بالذكاء الاصطناعي",
+    "scanTitle": "امسح شيئاً أو نصباً تذكارياً",
+    "scanSub": "وجّه كاميرتك لاكتشاف قصته",
+    "recommendations": "توصيات",
+    "loadingSites": "جارٍ تحميل مواقع ياوندي البارزة..."
+  },
+  "explore": {
+    "title": "اكتشاف",
+    "subtitle": "مسارات ومجموعات تراثية — قريباً."
+  },
+  "map": {
+    "title": "الخريطة",
+    "subtitle": "مواقع قريبة حسب موقعك — قريباً."
+  },
+  "profile": {
+    "title": "الملف الشخصي",
+    "subtitle": "اللغة، الاهتمامات، السجل والمفضلة.",
+    "language": "لغة التطبيق"
+  },
+  "scan": {
+    "cameraPermission": "إذن الوصول إلى الكاميرا مطلوب.",
+    "allowCamera": "السماح بالكاميرا",
+    "cameraPaused": "الكاميرا متوقفة",
+    "analyzing": "تحليل الصورة بالذكاء الاصطناعي...",
+    "searching": "البحث عن أشياء ونصب تذكارية...",
+    "scanning": "جارٍ المسح",
+    "importGallery": "استيراد من المعرض",
+    "notRecognized": "غير معروف",
+    "notRecognizedMsg": "لم يتم التعرف على أي نصب أو قطعة تراثية.",
+    "errorTitle": "خطأ",
+    "errorServer": "تعذر الاتصال بخادم التحليل.",
+    "errorAudio": "خطأ في الصوت",
+    "errorAudioMsg": "تعذر تشغيل الدليل الصوتي ElevenLabs.",
+    "guideTitle": "دليل ElevenLabs الصوتي",
+    "guideWaiting": "في انتظار التأكيد",
+    "guideReady": "استماع عالي الجودة · {{lang}}",
+    "confirmBanner": "أكد لبدء الدليل الصوتي",
+    "yes": "نعم",
+    "no": "لا",
+    "sectionOrigin": "الشرح والأصل",
+    "sectionHistory": "التاريخ والتراث",
+    "sectionAnecdote": "حكاية",
+    "rescan": "إعادة المسح",
+    "prompt": "هل تريد الاستماع إلى الوصف الصوتي لهذا النصب؟"
+  },
+  "languages": {
+    "fr": "Français",
+    "en": "English",
+    "es": "Español",
+    "de": "Deutsch",
+    "zh": "中文",
+    "ar": "العربية"
+  }
+}

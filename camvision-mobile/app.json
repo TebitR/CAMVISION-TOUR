@@ -24,7 +24,8 @@
       "favicon": "./assets/splash-accueil.png"
     },
     "plugins": [
-      "expo-audio"
+      "expo-audio",
+      "expo-localization"
     ]
   }
 }

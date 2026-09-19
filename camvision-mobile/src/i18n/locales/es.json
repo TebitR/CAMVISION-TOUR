@@ -1,0 +1,70 @@
+{
+  "tabs": {
+    "home": "Inicio",
+    "explore": "Explorar",
+    "map": "Mapa",
+    "scan": "Escanear",
+    "profile": "Perfil"
+  },
+  "branding": {
+    "kicker": "Tu guía cultural inteligente",
+    "subtitle": "Explora Camerún de otra manera",
+    "cta": "Empezar la aventura"
+  },
+  "home": {
+    "greeting": "Hola",
+    "title": "¿Listo para explorar Camerún?",
+    "aiBadge": "Reconocimiento IA",
+    "scanTitle": "Escanear un objeto o monumento",
+    "scanSub": "Apunta tu cámara para descubrir su historia",
+    "recommendations": "Recomendaciones",
+    "loadingSites": "Cargando sitios destacados de Yaundé..."
+  },
+  "explore": {
+    "title": "Descubrimiento",
+    "subtitle": "Rutas y colecciones patrimoniales — próximamente."
+  },
+  "map": {
+    "title": "Mapa",
+    "subtitle": "Sitios cercanos según tu GPS — próximamente."
+  },
+  "profile": {
+    "title": "Perfil",
+    "subtitle": "Idioma, intereses, historial y favoritos.",
+    "language": "Idioma de la aplicación"
+  },
+  "scan": {
+    "cameraPermission": "Se requiere permiso de cámara.",
+    "allowCamera": "Permitir cámara",
+    "cameraPaused": "Cámara en pausa",
+    "analyzing": "Análisis IA de la imagen...",
+    "searching": "Buscando objetos y monumentos...",
+    "scanning": "Escaneo en curso",
+    "importGallery": "Importar de la galería",
+    "notRecognized": "No reconocido",
+    "notRecognizedMsg": "No se identificó ningún monumento u objeto patrimonial.",
+    "errorTitle": "Error",
+    "errorServer": "No se pudo contactar el servidor de análisis.",
+    "errorAudio": "Error de audio",
+    "errorAudioMsg": "No se pudo reproducir la guía vocal ElevenLabs.",
+    "guideTitle": "Guía vocal ElevenLabs",
+    "guideWaiting": "Esperando confirmación",
+    "guideReady": "Escucha de alta fidelidad · {{lang}}",
+    "confirmBanner": "Confirma para iniciar la guía vocal",
+    "yes": "Sí",
+    "no": "No",
+    "sectionOrigin": "Explicación y origen",
+    "sectionHistory": "Historia y patrimonio",
+    "sectionAnecdote": "Anécdota",
+    "rescan": "Reiniciar escaneo",
+    "prompt": "¿Quiere escuchar la descripción vocal de este monumento?"
+  },
+  "languages": {
+    "fr": "Français",
+    "en": "English",
+    "es": "Español",
+    "de": "Deutsch",
+    "zh": "中文",
+    "ar": "العربية"
+  }
+}

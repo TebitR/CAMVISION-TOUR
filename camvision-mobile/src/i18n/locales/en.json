@@ -1,0 +1,70 @@
+{
+  "tabs": {
+    "home": "Home",
+    "explore": "Explore",
+    "map": "Map",
+    "scan": "Scan",
+    "profile": "Profile"
+  },
+  "branding": {
+    "kicker": "Your intelligent cultural guide",
+    "subtitle": "Explore Cameroon differently",
+    "cta": "Start the adventure"
+  },
+  "home": {
+    "greeting": "Hello",
+    "title": "Ready to explore Cameroon?",
+    "aiBadge": "AI Recognition",
+    "scanTitle": "Scan an object or monument",
+    "scanSub": "Point your camera to discover its history",
+    "recommendations": "Recommendations",
+    "loadingSites": "Loading landmark sites in Yaoundé..."
+  },
+  "explore": {
+    "title": "Discover",
+    "subtitle": "Heritage trails and collections — coming soon."
+  },
+  "map": {
+    "title": "Map",
+    "subtitle": "Nearby sites based on your GPS — coming soon."
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Language, interests, history and favorites.",
+    "language": "App language"
+  },
+  "scan": {
+    "cameraPermission": "Camera access permission required.",
+    "allowCamera": "Allow camera",
+    "cameraPaused": "Camera paused",
+    "analyzing": "AI image analysis...",
+    "searching": "Searching for objects & monuments...",
+    "scanning": "Scanning",
+    "importGallery": "Import from gallery",
+    "notRecognized": "Not recognized",
+    "notRecognizedMsg": "No heritage monument or object was identified.",
+    "errorTitle": "Error",
+    "errorServer": "Unable to reach the analysis server.",
+    "errorAudio": "Audio Error",
+    "errorAudioMsg": "Unable to play ElevenLabs voice guide.",
+    "guideTitle": "ElevenLabs voice guide",
+    "guideWaiting": "Waiting for confirmation",
+    "guideReady": "High-fidelity listening · {{lang}}",
+    "confirmBanner": "Confirm to start the voice guide",
+    "yes": "Yes",
+    "no": "No",
+    "sectionOrigin": "Explanation & Origin",
+    "sectionHistory": "History & Heritage",
+    "sectionAnecdote": "Anecdote",
+    "rescan": "Restart scan",
+    "prompt": "Would you like to listen to the audio description of this monument?"
+  },
+  "languages": {
+    "fr": "Français",
+    "en": "English",
+    "es": "Español",
+    "de": "Deutsch",
+    "zh": "中文",
+    "ar": "العربية"
+  }
+}

@@ -10,10 +10,12 @@ import {
   Dimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useTranslation } from 'react-i18next';
 
 const { width } = Dimensions.get('window');
 
 export default function BrandingScreen({ onStart }) {
+  const { t } = useTranslation();
   const fadeLogo = useRef(new Animated.Value(0)).current;
   const scaleLogo = useRef(new Animated.Value(0.82)).current;
   const floatY = useRef(new Animated.Value(0)).current;
@@ -129,13 +131,13 @@ export default function BrandingScreen({ onStart }) {
       </Animated.View>
 
       <Animated.View style={[styles.copyBlock, { opacity: fadeText }]}>
-        <Text style={styles.kicker}>Votre guide culturel intelligent</Text>
-        <Text style={styles.subtitle}>Explorez le Cameroun autrement</Text>
+        <Text style={styles.kicker}>{t('branding.kicker')}</Text>
+        <Text style={styles.subtitle}>{t('branding.subtitle')}</Text>
       </Animated.View>
 
       <Animated.View style={{ opacity: fadeBtn, width: '100%', paddingHorizontal: 36 }}>
         <TouchableOpacity style={styles.cta} activeOpacity={0.85} onPress={onStart}>
-          <Text style={styles.ctaText}>Commencer l'aventure</Text>
+          <Text style={styles.ctaText}>{t('branding.cta')}</Text>
         </TouchableOpacity>
       </Animated.View>
     </View>

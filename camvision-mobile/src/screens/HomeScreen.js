@@ -2,9 +2,11 @@ import React from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 export default function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   return (
     <ScrollView
@@ -13,8 +15,8 @@ export default function HomeScreen({ navigation }) {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-        <Text style={styles.greeting}>Bonjour</Text>
-        <Text style={styles.title}>Prêt à explorer le Cameroun ?</Text>
+        <Text style={styles.greeting}>{t('home.greeting')}</Text>
+        <Text style={styles.title}>{t('home.title')}</Text>
       </View>
 
       <TouchableOpacity
@@ -25,10 +27,10 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.scanBannerText}>
           <View style={styles.badgeAi}>
             <Ionicons name="flash" size={14} color="#059669" />
-            <Text style={styles.badgeAiText}>Reconnaissance IA</Text>
+            <Text style={styles.badgeAiText}>{t('home.aiBadge')}</Text>
           </View>
-          <Text style={styles.scanBannerTitle}>Scanner un objet ou monument</Text>
-          <Text style={styles.scanBannerSub}>Pointez votre caméra pour découvrir son histoire</Text>
+          <Text style={styles.scanBannerTitle}>{t('home.scanTitle')}</Text>
+          <Text style={styles.scanBannerSub}>{t('home.scanSub')}</Text>
         </View>
         <View style={styles.scanIconBox}>
           <Ionicons name="camera" size={26} color="#ffffff" />
@@ -36,12 +38,12 @@ export default function HomeScreen({ navigation }) {
       </TouchableOpacity>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Recommandations</Text>
+        <Text style={styles.sectionTitle}>{t('home.recommendations')}</Text>
         <View style={styles.cardPlaceholder}>
           <View style={styles.iconCircle}>
             <Ionicons name="location" size={20} color="#059669" />
           </View>
-          <Text style={styles.cardText}>Chargement des sites phares de Yaoundé...</Text>
+          <Text style={styles.cardText}>{t('home.loadingSites')}</Text>
         </View>
       </View>
     </ScrollView>
@@ -78,17 +80,17 @@ const styles = StyleSheet.create({
   scanIconBox: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: 16,
     backgroundColor: '#059669',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  section: { marginTop: 4 },
-  sectionTitle: { color: '#0f172a', fontSize: 18, fontWeight: '700', marginBottom: 12 },
+  section: { marginBottom: 20 },
+  sectionTitle: { color: '#0f172a', fontSize: 17, fontWeight: '800', marginBottom: 12 },
   cardPlaceholder: {
     backgroundColor: '#ffffff',
-    padding: 16,
     borderRadius: 16,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: StyleSheet.hairlineWidth,
@@ -101,6 +103,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(16, 185, 129, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
   },
-  cardText: { color: '#64748b', fontSize: 13, marginLeft: 12, flex: 1, lineHeight: 18 },
+  cardText: { color: '#64748b', fontSize: 13, flex: 1 },
 });

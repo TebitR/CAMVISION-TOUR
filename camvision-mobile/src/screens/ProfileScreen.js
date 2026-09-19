@@ -1,29 +1,40 @@
 import React from 'react';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View, Text, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
+import LanguageSelector from '../components/LanguageSelector';
 
 export default function ProfileScreen() {
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: insets.top + 24, paddingBottom: 120 },
+      ]}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.iconWrap}>
         <Ionicons name="person" size={36} color="#059669" />
       </View>
-      <Text style={styles.title}>Profil</Text>
-      <Text style={styles.subtitle}>
-        Langue, centres d'intérêt, historique et favoris — à venir.
-      </Text>
-    </View>
+      <Text style={styles.title}>{t('profile.title')}</Text>
+      <Text style={styles.subtitle}>{t('profile.subtitle')}</Text>
+
+      <Text style={styles.section}>{t('profile.language')}</Text>
+      <LanguageSelector />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-    justifyContent: 'center',
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  content: {
+    paddingHorizontal: 24,
     alignItems: 'center',
-    padding: 28,
-    paddingBottom: 120,
   },
   iconWrap: {
     width: 72,
@@ -34,5 +45,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: { color: '#0f172a', fontSize: 22, fontWeight: '800', marginTop: 16 },
-  subtitle: { color: '#64748b', fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 },
+  subtitle: {
+    color: '#64748b',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
+    marginBottom: 28,
+  },
+  section: {
+    alignSelf: 'stretch',
+    color: '#0f172a',
+    fontWeight: '800',
+    fontSize: 15,
+    marginBottom: 12,
+  },
 });
