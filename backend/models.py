@@ -77,13 +77,22 @@ class TouristObject(Base):
     id = Column(Integer, primary_key=True, index=True)
     site_id = Column(Integer, ForeignKey("sites.id"))
     zone_id = Column(Integer, ForeignKey("zones.id"), nullable=True)
-    
+
+    code = Column(String(50), unique=True, index=True, nullable=True)
     name = Column(JSON, nullable=False)
     description = Column(JSON)
-    category = Column(String(100), default="artifact")
+    history = Column(JSON)
+    anecdotes = Column(JSON)
+    category = Column(String(100), default="artifact", index=True)
     image_url = Column(String(500), nullable=True)
     audio_story_url = Column(String(500), nullable=True)
-    
+
+    region = Column(String(100), nullable=True)
+    city_name = Column(String(100), nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+
+    voice_id = Column(String(100), nullable=True)
     vector_id = Column(String(100), unique=True, index=True)
     
     site = relationship("Site", back_populates="objects")
@@ -91,8 +100,14 @@ class TouristObject(Base):
 
     @property
     def name_fr(self):
-        """Propriété calculée à partir du champ multilingue `name`."""
-        return self.name
+        if isinstance(self.name, dict):
+            return self.name.get("fr") or next(iter(self.name.values()), "Objet")
+        return str(self.name) if self.name else "Objet"
+
+    def localized(self, field, lang: str, fallback: str = "") -> str:
+        if not isinstance(field, dict):
+            return field or fallback
+        return field.get(lang) or field.get("fr") or field.get("en") or fallback
 
 class ScanHistory(Base):
     __tablename__ = "scan_history"

@@ -22,6 +22,9 @@
     },
     "web": {
       "favicon": "./assets/splash-accueil.png"
-    }
+    },
+    "plugins": [
+      "expo-audio"
+    ]
   }
 }

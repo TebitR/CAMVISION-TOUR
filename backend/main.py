@@ -1,24 +1,34 @@
 import os
 import math
-from fastapi import FastAPI, Depends, File, UploadFile, HTTPException, Query
+from fastapi import FastAPI, Depends, File, UploadFile, HTTPException, Query, Form
+from fastapi.responses import Response
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance
 from database import engine, Base, get_db
 from models import Site, User, TouristObject
 from vision import get_vision_engine
+from services.tts_service import generate_speech_elevenlabs, DEFAULT_VOICE_ID
+from migrate_enrich import ensure_enriched_columns
+import asyncio
 
 Base.metadata.create_all(bind=engine)
+try:
+    ensure_enriched_columns()
+except Exception as e:
+    print(f"Migration enrichissement: {e}")
 
 app = FastAPI(
     title="CAMVISION TOUR API",
-    version="1.0.0",
-    description="Backend Orchestrateur - Vision, GPS & IA Contextuelle"
+    version="2.0.0",
+    description="Backend Orchestrateur - Vision, GPS, Multilingue & ElevenLabs"
 )
 
 QDRANT_HOST = os.getenv("QDRANT_HOST", "vector-db")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT", 6333))
 COLLECTION_NAME = "camvision_artifacts"
+CONFIDENCE_THRESHOLD = 0.60
 
 
 def get_qdrant_client() -> QdrantClient:
@@ -26,7 +36,7 @@ def get_qdrant_client() -> QdrantClient:
 
 
 def haversine(lat1, lon1, lat2, lon2):
-    R = 6371.0  # Rayon de la Terre en km
+    R = 6371.0
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
     a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
@@ -53,9 +63,11 @@ def startup_event():
     except Exception as e:
         print(f"Erreur warmup OpenCLIP au démarrage : {e}")
 
+
 @app.get("/")
 def read_root():
-    return {"status": "online", "project": "CAMVISION TOUR", "version": "1.0.0"}
+    return {"status": "online", "project": "CAMVISION TOUR", "version": "2.0.0"}
+
 
 @app.get("/health")
 def health_check():
@@ -64,13 +76,16 @@ def health_check():
         "postgres": "ready",
         "qdrant": COLLECTION_NAME,
         "vision_engine": "OpenCLIP ViT-B/32",
+        "tts": "ElevenLabs",
         "status": "healthy"
     }
+
 
 @app.get("/api/sites")
 def get_sites(db: Session = Depends(get_db)):
     sites = db.query(Site).all()
     return {"count": len(sites), "sites": sites}
+
 
 @app.get("/api/sites/nearby", summary="Rechercher des sites à proximité")
 async def get_nearby_sites(
@@ -81,7 +96,6 @@ async def get_nearby_sites(
 ):
     sites = db.query(Site).all()
     nearby = []
-    
     for site in sites:
         dist = haversine(latitude, longitude, site.latitude, site.longitude)
         if dist <= radius_km:
@@ -92,23 +106,22 @@ async def get_nearby_sites(
                 "longitude": site.longitude,
                 "distance_km": round(dist, 2)
             })
-            
     return {"count": len(nearby), "sites": nearby}
+
 
 @app.post("/api/vision/extract")
 async def extract_vector(file: UploadFile = File(...)):
-    if not file.content_type.startswith("image/"):
+    if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Le fichier fourni doit être une image.")
-    
     image_bytes = await file.read()
-    engine = get_vision_engine()
-    vector = engine.extract_image_embedding(image_bytes)
-    
+    vision = get_vision_engine()
+    vector = vision.extract_image_embedding(image_bytes)
     return {
         "filename": file.filename,
         "vector_dimensions": len(vector),
         "sample": vector[:5]
     }
+
 
 @app.post("/api/vision/search", summary="Recherche par similarité visuelle")
 async def search_similar_objects(
@@ -117,27 +130,19 @@ async def search_similar_objects(
     db: Session = Depends(get_db)
 ):
     try:
-        # 1. Lecture de l'image uploadée
         image_bytes = await file.read()
-        
-        # 2. Extraction du vecteur embedding OpenCLIP (512-D)
         vision_engine = get_vision_engine()
         query_vector = vision_engine.extract_image_embedding(image_bytes)
-        
-        # 3. Interrogation de Qdrant pour trouver les plus proches voisins
         client = get_qdrant_client()
         search_result = client.search(
             collection_name=COLLECTION_NAME,
             query_vector=query_vector,
             limit=limit
         )
-        
-        # 4. Enrichissement des résultats avec les données PostgreSQL
         results = []
         for hit in search_result:
             obj_id = hit.payload.get("object_id") or hit.id
             obj = db.query(TouristObject).filter(TouristObject.id == obj_id).first()
-            
             if obj:
                 results.append({
                     "object_id": obj.id,
@@ -153,12 +158,115 @@ async def search_similar_objects(
                     "name": hit.payload.get("name_fr", "Objet inconnu"),
                     "score": round(hit.score, 4)
                 })
-                
-        return {
-            "success": True,
-            "count": len(results),
-            "results": results
-        }
-        
+        return {"success": True, "count": len(results), "results": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur lors de la recherche visuelle : {str(e)}")
+
+
+@app.post("/api/vision/analyze", summary="Pipeline Scan complet")
+async def analyze_and_explain(
+    file: UploadFile = File(...),
+    lang: str = Form("fr"),
+    user_interest: str = Form("general"),
+    db: Session = Depends(get_db),
+):
+    """
+    1. OpenCLIP → embedding
+    2. Qdrant → matching
+    3. PostgreSQL → métadonnées patrimoniales
+    4. Texte adapté à la langue
+    """
+    try:
+        image_bytes = await file.read()
+        vision_engine = get_vision_engine()
+        query_vector = vision_engine.extract_image_embedding(image_bytes)
+
+        client = get_qdrant_client()
+        hits = client.search(
+            collection_name=COLLECTION_NAME,
+            query_vector=query_vector,
+            limit=5,
+        )
+
+        if not hits:
+            return {
+                "found": False,
+                "message": "Aucun artefact ou monument reconnu avec une confiance suffisante.",
+            }
+
+        # Prendre le meilleur hit dont l'object_id existe encore en Postgres
+        # (ignore les vecteurs orphelins d'anciens seed)
+        top = None
+        obj = None
+        for hit in hits:
+            if hit.score < CONFIDENCE_THRESHOLD:
+                continue
+            obj_id = hit.payload.get("object_id") or hit.id
+            candidate = db.query(TouristObject).filter(TouristObject.id == obj_id).first()
+            if candidate:
+                top = hit
+                obj = candidate
+                break
+
+        if not top or not obj:
+            best = hits[0]
+            return {
+                "found": False,
+                "score": round(best.score, 4),
+                "message": "Aucun artefact ou monument reconnu avec une confiance suffisante.",
+            }
+
+        lang_key = (lang or "fr").lower()[:2]
+        title = obj.localized(obj.name, lang_key, "Artefact")
+        explanation = obj.localized(obj.description, lang_key, "")
+        history = obj.localized(obj.history, lang_key, "")
+        anecdotes = obj.localized(obj.anecdotes, lang_key, "")
+
+        # Légère adaptation selon l'intérêt utilisateur
+        if user_interest and user_interest != "general" and history:
+            explanation = f"{explanation}\n\n{history}"
+
+        return {
+            "found": True,
+            "score": round(top.score, 4),
+            "artifact": {
+                "id": obj.id,
+                "code": obj.code,
+                "title": title,
+                "category": obj.category or "artifact",
+                "region": obj.region or "Cameroun",
+                "city": obj.city_name,
+                "image_url": obj.image_url,
+                "voice_id": DEFAULT_VOICE_ID,
+                "coordinates": {
+                    "latitude": obj.latitude,
+                    "longitude": obj.longitude,
+                },
+                "explanation": explanation,
+                "history": history,
+                "anecdotes": anecdotes,
+                "lang": lang_key,
+            },
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur analyse: {str(e)}")
+
+
+class TTSPayload(BaseModel):
+    text: str
+    voice_id: str | None = None
+
+
+@app.post("/api/tts/generate", summary="Synthèse vocale ElevenLabs (SDK uniquement)")
+async def generate_audio(payload: TTSPayload):
+    text = payload.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Le texte est obligatoire.")
+
+    # Limiter la taille pour contrôler coût / latence
+    if len(text) > 2500:
+        text = text[:2500]
+
+    voice_id = (payload.voice_id or DEFAULT_VOICE_ID or "").strip() or None
+    audio_bytes = await asyncio.to_thread(generate_speech_elevenlabs, text, voice_id)
+    return Response(content=audio_bytes, media_type="audio/mpeg")
