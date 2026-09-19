@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "CAMVISION TOUR",
+    "slug": "camvision-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/splash-accueil.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-accueil.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff",
+        "foregroundImage": "./assets/splash-accueil.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/splash-accueil.png"
+    }
+  }
+}
