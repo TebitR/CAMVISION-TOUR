@@ -18,18 +18,33 @@ env/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+backend/.venv/
 
-# IDE / OS
+# Node / Expo
+node_modules/
+.expo/
+dist/
+web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# IDE / OS / agents
 .idea/
 .vscode/
+.claude/
 *.swp
 .DS_Store
 Thumbs.db
 
-# Docker / local data
+# Docker / local data / tests
 *.log
 .coverage
 htmlcov/
+test_audio.mp3
 
 # Build / cache
 dist/
