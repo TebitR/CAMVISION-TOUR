@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, DarkTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -17,8 +17,13 @@ import BrandingScreen from './src/screens/BrandingScreen';
 import OnboardingScreen, { LANG_STORAGE_KEY } from './src/screens/OnboardingScreen';
 import FloatingTabBar from './src/components/FloatingTabBar';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
+import {
+  addNotificationResponseListener,
+  ensureNotificationPermissions,
+} from './src/services/notificationService';
 
 const Tab = createBottomTabNavigator();
+const navigationRef = createNavigationContainerRef();
 
 function MainTabNavigator() {
   const { t } = useTranslation();
@@ -41,7 +46,6 @@ function MainTabNavigator() {
 
 function AppRoot() {
   const { colors, isDark } = useTheme();
-  // branding → onboarding (toujours) → main
   const [phase, setPhase] = useState('loading');
 
   useEffect(() => {
@@ -57,6 +61,20 @@ function AppRoot() {
       setPhase('branding');
     })();
   }, []);
+
+  useEffect(() => {
+    if (phase !== 'main') return undefined;
+    ensureNotificationPermissions().catch(() => {});
+    const sub = addNotificationResponseListener((response) => {
+      const data = response?.notification?.request?.content?.data;
+      if (data?.screen === 'Scan' || data?.type === 'geofence') {
+        if (navigationRef.isReady()) {
+          navigationRef.navigate('Scan');
+        }
+      }
+    });
+    return () => sub.remove();
+  }, [phase]);
 
   const navTheme = {
     ...(isDark ? DarkTheme : DefaultTheme),
@@ -84,7 +102,7 @@ function AppRoot() {
   }
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer theme={navTheme} ref={navigationRef}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <MainTabNavigator />
     </NavigationContainer>

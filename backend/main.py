@@ -2,6 +2,7 @@ import os
 import math
 from fastapi import FastAPI, Depends, File, UploadFile, HTTPException, Query, Form
 from fastapi.responses import Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from qdrant_client import QdrantClient
@@ -30,6 +31,11 @@ app = FastAPI(
     version="2.0.0",
     description="Backend Orchestrateur - Vision, GPS, Multilingue & ElevenLabs"
 )
+
+# Images patrimoniaxes (sample_images/...) accessibles depuis le mobile
+_sample_dir = os.path.join(os.path.dirname(__file__), "sample_images")
+if os.path.isdir(_sample_dir):
+    app.mount("/sample_images", StaticFiles(directory=_sample_dir), name="sample_images")
 
 QDRANT_HOST = os.getenv("QDRANT_HOST", "vector-db")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT", 6333))
@@ -112,7 +118,56 @@ async def get_nearby_sites(
                 "longitude": site.longitude,
                 "distance_km": round(dist, 2)
             })
+    nearby.sort(key=lambda x: x["distance_km"])
     return {"count": len(nearby), "sites": nearby}
+
+
+@app.get("/api/monuments/nearby", summary="Monuments / objets patrimoniaux à proximité")
+async def get_nearby_monuments(
+    lat: float = Query(..., description="Latitude GPS du touriste"),
+    lng: float = Query(..., description="Longitude GPS du touriste"),
+    radius: float = Query(300.0, description="Rayon en km (défaut 300 pour couverture régionale)"),
+    lang: str = Query("fr", description="Langue des métadonnées"),
+    db: Session = Depends(get_db),
+):
+    lang_key = (lang or "fr").lower().replace("_", "-").split("-")[0]
+    if lang_key not in ("fr", "en", "es", "de", "zh", "ar"):
+        lang_key = "fr"
+
+    objects = (
+        db.query(TouristObject)
+        .filter(TouristObject.latitude.isnot(None), TouristObject.longitude.isnot(None))
+        .all()
+    )
+    nearby = []
+    for obj in objects:
+        dist = haversine(lat, lng, obj.latitude, obj.longitude)
+        if dist > radius:
+            continue
+        nearby.append({
+            "id": obj.id,
+            "code": obj.code,
+            "title": obj.localized(obj.name, lang_key, "Monument"),
+            "category": obj.category or "artifact",
+            "region": obj.region,
+            "city": obj.city_name,
+            "latitude": obj.latitude,
+            "longitude": obj.longitude,
+            "distance_km": round(dist, 3),
+            "distance_m": round(dist * 1000),
+            "image_url": obj.image_url,
+            "explanation": obj.localized(obj.description, lang_key, ""),
+            "history": obj.localized(obj.history, lang_key, ""),
+        })
+
+    nearby.sort(key=lambda x: x["distance_km"])
+    return {
+        "count": len(nearby),
+        "lat": lat,
+        "lng": lng,
+        "radius_km": radius,
+        "monuments": nearby,
+    }
 
 
 @app.post("/api/vision/extract")

@@ -12,20 +12,36 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "CAMVISION TOUR utilise votre position pour afficher les monuments et musées à proximité et calculer les distances.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "CAMVISION TOUR peut vous alerter lorsque vous approchez d'un site patrimonial."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/splash-accueil.png"
-      }
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "FOREGROUND_SERVICE"
+      ]
     },
     "web": {
       "favicon": "./assets/splash-accueil.png"
     },
     "plugins": [
       "expo-audio",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Autoriser CAMVISION TOUR à utiliser votre position pour les alertes de proximité patrimoniale.",
+          "locationWhenInUsePermission": "Autoriser CAMVISION TOUR à utiliser votre position pour trouver les monuments proches."
+        }
+      ]
     ]
   }
 }

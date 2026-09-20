@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  Image,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
@@ -25,19 +26,17 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
-import Constants from 'expo-constants';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useRoute, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { resolveAppLanguage } from '../i18n';
 import SoundWave from '../components/SoundWave';
 import MonumentAskBox from '../components/MonumentAskBox';
 import { useTheme } from '../theme/ThemeContext';
+import { monumentImageSource } from '../utils/imageUtils';
+import { getApiUrl } from '../config';
 
-const debuggerHost =
-  Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoGo?.developer?.tool;
-const localhost = debuggerHost ? debuggerHost.split(':')[0] : 'localhost';
-const API_URL = `http://${localhost}:8000`;
+const API_URL = getApiUrl();
 const CONFIDENCE_THRESHOLD = 0.6;
 
 /** Invites vocales embarquées (0 ms — aucun réseau). */
@@ -89,8 +88,11 @@ export default function ScanScreen() {
   const { colors, isDark } = useTheme();
 
   const isFocused = useIsFocused();
+  const route = useRoute();
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const tabClearance = 72 + Math.min(insets.bottom, 14);
+  const mapIntentHandledRef = useRef(null);
 
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraRef, setCameraRef] = useState(null);
@@ -187,6 +189,25 @@ export default function ScanScreen() {
     promptStartedForIdRef.current = analysisResult.id;
     handlePostScanInteractivePrompt();
   }, [modalVisible, analysisResult?.id]);
+
+  // Ouverture depuis la carte (Audio-Guide / Poser une question)
+  useEffect(() => {
+    const mapMonument = route.params?.mapMonument;
+    if (!isFocused || !mapMonument?.id) return;
+    const intentKey = `${mapMonument.id}:${route.params?.action || 'open'}`;
+    if (mapIntentHandledRef.current === intentKey) return;
+    mapIntentHandledRef.current = intentKey;
+
+    setScore(1);
+    setAnalysisResult({
+      ...mapMonument,
+      anecdotes: mapMonument.anecdotes || '',
+    });
+    setIsLiveScanning(false);
+    setModalVisible(true);
+
+    navigation.setParams({ mapMonument: undefined, action: undefined });
+  }, [isFocused, route.params?.mapMonument, route.params?.action, navigation]);
 
   useEffect(() => {
     return () => {
@@ -476,6 +497,7 @@ export default function ScanScreen() {
     setAnalysisResult(null);
     setScore(null);
     promptStartedForIdRef.current = null;
+    mapIntentHandledRef.current = null;
     setIsLiveScanning(true);
   };
 
@@ -579,6 +601,12 @@ export default function ScanScreen() {
                   </View>
 
                   <Text style={styles.modalTitle}>{analysisResult.title}</Text>
+
+                  <Image
+                    source={monumentImageSource(analysisResult.image_url)}
+                    style={styles.heroImage}
+                    resizeMode="cover"
+                  />
 
                   {(showInviteBanner || isListening) && (
                     <View style={styles.listenBanner}>
@@ -886,10 +914,17 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '800',
     color: '#ffffff',
-    marginBottom: 16,
+    marginBottom: 12,
     textShadowColor: 'rgba(0,0,0,0.55)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 5,
+  },
+  heroImage: {
+    width: '100%',
+    height: 160,
+    borderRadius: 16,
+    marginBottom: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   listenBanner: {
     borderRadius: 16,
