@@ -11,6 +11,11 @@
     "subtitle": "Explore Cameroon differently",
     "cta": "Start the adventure"
   },
+  "onboarding": {
+    "title": "Choose your language",
+    "subtitle": "Voice guide and texts will adapt automatically.",
+    "continue": "Continue"
+  },
   "home": {
     "greeting": "Hello",
     "title": "Ready to explore Cameroon?",
@@ -31,7 +36,11 @@
   "profile": {
     "title": "Profile",
     "subtitle": "Language, interests, history and favorites.",
-    "language": "App language"
+    "language": "App language",
+    "theme": "Appearance",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System"
   },
   "scan": {
     "cameraPermission": "Camera access permission required.",
@@ -57,7 +66,13 @@
     "sectionHistory": "History & Heritage",
     "sectionAnecdote": "Anecdote",
     "rescan": "Restart scan",
-    "prompt": "Would you like to listen to the audio description of this monument?"
+    "prompt": "Would you like to listen to the audio description of this monument?",
+    "askTitle": "A question about this monument?",
+    "askPlaceholder": "Ask your question...",
+    "askSend": "Send",
+    "askThinking": "Searching...",
+    "askError": "Could not get an answer. Try again.",
+    "miniPlayerTitle": "Audio guide"
   },
   "languages": {
     "fr": "Français",

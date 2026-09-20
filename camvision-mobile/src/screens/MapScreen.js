@@ -2,17 +2,19 @@ import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../theme/ThemeContext';
 
 export default function MapScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
 
   return (
-    <View style={styles.container}>
-      <View style={styles.iconWrap}>
-        <Ionicons name="map" size={36} color="#059669" />
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      <View style={[styles.iconWrap, { backgroundColor: colors.primarySoft }]}>
+        <Ionicons name="map" size={36} color={colors.primary} />
       </View>
-      <Text style={styles.title}>{t('map.title')}</Text>
-      <Text style={styles.subtitle}>{t('map.subtitle')}</Text>
+      <Text style={[styles.title, { color: colors.text }]}>{t('map.title')}</Text>
+      <Text style={[styles.subtitle, { color: colors.textMuted }]}>{t('map.subtitle')}</Text>
     </View>
   );
 }
@@ -20,7 +22,6 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 28,
@@ -30,10 +31,9 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { color: '#0f172a', fontSize: 22, fontWeight: '800', marginTop: 16 },
-  subtitle: { color: '#64748b', fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 },
+  title: { fontSize: 22, fontWeight: '800', marginTop: 16 },
+  subtitle: { fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 },
 });

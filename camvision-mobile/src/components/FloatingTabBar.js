@@ -4,6 +4,7 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../theme/ThemeContext';
 
 const TAB_META = {
   Accueil: { icon: 'home', labelKey: 'tabs.home' },
@@ -16,12 +17,13 @@ const TAB_META = {
 export default function FloatingTabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const { isDark, colors } = useTheme();
   const bottomOffset = Platform.OS === 'ios' ? Math.min(insets.bottom, 14) : 10;
 
   return (
     <View style={[styles.wrap, { bottom: bottomOffset }]}>
-      <BlurView intensity={70} tint="light" style={styles.blur}>
-        <View style={styles.inner}>
+      <BlurView intensity={70} tint={isDark ? 'dark' : 'light'} style={styles.blur}>
+        <View style={[styles.inner, isDark && { backgroundColor: 'rgba(15,23,42,0.55)' }]}>
           {state.routes.map((route, index) => {
             const meta = TAB_META[route.name] || { icon: 'ellipse', labelKey: null };
             const isFocused = state.index === index;
@@ -52,9 +54,16 @@ export default function FloatingTabBar({ state, descriptors, navigation }) {
                   <Ionicons
                     name={iconName}
                     size={route.name === 'Scan' ? 24 : 22}
-                    color={isFocused ? '#059669' : '#64748b'}
+                    color={isFocused ? colors.primary : colors.textMuted}
                   />
-                  <Text style={[styles.label, isFocused && styles.labelActive]} numberOfLines={1}>
+                  <Text
+                    style={[
+                      styles.label,
+                      { color: colors.textMuted },
+                      isFocused && { color: colors.primary },
+                    ]}
+                    numberOfLines={1}
+                  >
                     {label}
                   </Text>
                 </View>

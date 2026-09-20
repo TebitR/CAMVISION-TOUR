@@ -10,6 +10,12 @@ from database import engine, Base, get_db
 from models import Site, User, TouristObject
 from vision import get_vision_engine
 from services.tts_service import generate_speech_elevenlabs, DEFAULT_VOICE_ID
+from services.rag_service import (
+    build_monument_context,
+    ask_gemini,
+    extractive_answer,
+    qdrant_monument_hits,
+)
 from migrate_enrich import ensure_enriched_columns
 import asyncio
 
@@ -257,6 +263,60 @@ async def analyze_and_explain(
 class TTSPayload(BaseModel):
     text: str
     voice_id: str | None = None
+
+
+class RagAskPayload(BaseModel):
+    monument_id: int
+    query: str
+    language: str = "fr"
+
+
+@app.post("/api/rag/ask", summary="Q&A RAG sur un monument (Qdrant + Gemini)")
+async def rag_ask(payload: RagAskPayload, db: Session = Depends(get_db)):
+    query = (payload.query or "").strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="La question est obligatoire.")
+    if len(query) > 500:
+        query = query[:500]
+
+    lang_key = (payload.language or "fr").lower().replace("_", "-").split("-")[0]
+    if lang_key not in ("fr", "en", "es", "de", "zh", "ar"):
+        lang_key = "fr"
+
+    obj = db.query(TouristObject).filter(TouristObject.id == payload.monument_id).first()
+    if not obj:
+        raise HTTPException(status_code=404, detail="Monument introuvable.")
+
+    context = build_monument_context(obj, lang_key)
+
+    # Recherche vectorielle CLIP texte→image filtrée sur ce monument
+    relevance = None
+    try:
+        vision = get_vision_engine()
+        query_vector = await asyncio.to_thread(vision.extract_text_embedding, query)
+        client = get_qdrant_client()
+        hits = await asyncio.to_thread(
+            qdrant_monument_hits, client, COLLECTION_NAME, obj.id, query_vector, 3
+        )
+        if hits:
+            relevance = round(float(hits[0].score), 4)
+    except Exception as e:
+        print(f"RAG Qdrant: {e}")
+
+    answer = await asyncio.to_thread(ask_gemini, context, query, lang_key)
+    source = "gemini"
+    if not answer:
+        answer = extractive_answer(context, query, lang_key)
+        source = "extractive"
+
+    return {
+        "success": True,
+        "monument_id": obj.id,
+        "language": lang_key,
+        "answer": answer,
+        "relevance": relevance,
+        "source": source,
+    }
 
 
 @app.post("/api/tts/generate", summary="Synthèse vocale ElevenLabs (SDK uniquement)")

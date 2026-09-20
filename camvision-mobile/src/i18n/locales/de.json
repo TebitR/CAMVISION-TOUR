@@ -11,6 +11,11 @@
     "subtitle": "Kamerun anders entdecken",
     "cta": "Abenteuer starten"
   },
+  "onboarding": {
+    "title": "Wählen Sie Ihre Sprache",
+    "subtitle": "Sprachführer und Texte passen sich automatisch an.",
+    "continue": "Weiter"
+  },
   "home": {
     "greeting": "Hallo",
     "title": "Bereit, Kamerun zu erkunden?",
@@ -31,7 +36,11 @@
   "profile": {
     "title": "Profil",
     "subtitle": "Sprache, Interessen, Verlauf und Favoriten.",
-    "language": "App-Sprache"
+    "language": "App-Sprache",
+    "theme": "Erscheinungsbild",
+    "themeLight": "Hell",
+    "themeDark": "Dunkel",
+    "themeSystem": "System"
   },
   "scan": {
     "cameraPermission": "Kamerazugriff erforderlich.",
@@ -57,7 +66,13 @@
     "sectionHistory": "Geschichte & Erbe",
     "sectionAnecdote": "Anekdote",
     "rescan": "Scan neu starten",
-    "prompt": "Möchten Sie die Audio-Beschreibung dieses Denkmals hören?"
+    "prompt": "Möchten Sie die Audio-Beschreibung dieses Denkmals hören?",
+    "askTitle": "Eine Frage zu diesem Denkmal?",
+    "askPlaceholder": "Stellen Sie Ihre Frage...",
+    "askSend": "Senden",
+    "askThinking": "Suche läuft...",
+    "askError": "Antwort nicht möglich. Bitte erneut versuchen.",
+    "miniPlayerTitle": "Audioguide"
   },
   "languages": {
     "fr": "Français",

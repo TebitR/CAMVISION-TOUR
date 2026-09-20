@@ -11,6 +11,11 @@
     "subtitle": "Explora Camerún de otra manera",
     "cta": "Empezar la aventura"
   },
+  "onboarding": {
+    "title": "Elija su idioma",
+    "subtitle": "La guía de voz y los textos se adaptarán automáticamente.",
+    "continue": "Continuar"
+  },
   "home": {
     "greeting": "Hola",
     "title": "¿Listo para explorar Camerún?",
@@ -31,7 +36,11 @@
   "profile": {
     "title": "Perfil",
     "subtitle": "Idioma, intereses, historial y favoritos.",
-    "language": "Idioma de la aplicación"
+    "language": "Idioma de la aplicación",
+    "theme": "Apariencia",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
+    "themeSystem": "Sistema"
   },
   "scan": {
     "cameraPermission": "Se requiere permiso de cámara.",
@@ -57,7 +66,13 @@
     "sectionHistory": "Historia y patrimonio",
     "sectionAnecdote": "Anécdota",
     "rescan": "Reiniciar escaneo",
-    "prompt": "¿Quiere escuchar la descripción vocal de este monumento?"
+    "prompt": "¿Quiere escuchar la descripción vocal de este monumento?",
+    "askTitle": "¿Una pregunta sobre este monumento?",
+    "askPlaceholder": "Haga su pregunta...",
+    "askSend": "Enviar",
+    "askThinking": "Buscando...",
+    "askError": "No se pudo obtener una respuesta. Inténtelo de nuevo.",
+    "miniPlayerTitle": "Guía de audio"
   },
   "languages": {
     "fr": "Français",

@@ -11,6 +11,11 @@
     "subtitle": "Explorez le Cameroun autrement",
     "cta": "Commencer l'aventure"
   },
+  "onboarding": {
+    "title": "Choisissez votre langue",
+    "subtitle": "Votre guide vocal et les textes s'adapteront automatiquement.",
+    "continue": "Continuer"
+  },
   "home": {
     "greeting": "Bonjour",
     "title": "Prêt à explorer le Cameroun ?",
@@ -31,14 +36,18 @@
   "profile": {
     "title": "Profil",
     "subtitle": "Langue, centres d'intérêt, historique et favoris.",
-    "language": "Langue de l'application"
+    "language": "Langue de l'application",
+    "theme": "Apparence",
+    "themeLight": "Clair",
+    "themeDark": "Sombre",
+    "themeSystem": "Système"
   },
   "scan": {
     "cameraPermission": "Permission d'accéder à la caméra requise.",
     "allowCamera": "Autoriser la caméra",
     "cameraPaused": "Caméra en pause",
     "analyzing": "Analyse IA de l'image...",
-    "searching": "Recherche d’objets & monuments...",
+    "searching": "Recherche d'objets & monuments...",
     "scanning": "Scan en cours",
     "importGallery": "Importer de la galerie",
     "notRecognized": "Non reconnu",
@@ -57,7 +66,13 @@
     "sectionHistory": "Histoire & Patrimoine",
     "sectionAnecdote": "Anecdote",
     "rescan": "Relancer le scan",
-    "prompt": "Voulez-vous écouter la description vocale de ce monument ?"
+    "prompt": "Voulez-vous écouter la description vocale de ce monument ?",
+    "askTitle": "Une question sur ce monument ?",
+    "askPlaceholder": "Posez votre question...",
+    "askSend": "Envoyer",
+    "askThinking": "Recherche en cours...",
+    "askError": "Impossible d'obtenir une réponse. Réessayez.",
+    "miniPlayerTitle": "Guide vocal"
   },
   "languages": {
     "fr": "Français",

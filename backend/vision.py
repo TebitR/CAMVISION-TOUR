@@ -39,6 +39,16 @@ class VisionEngine:
             
         return image_features.cpu().numpy().flatten().tolist()
 
+    def extract_text_embedding(self, text: str) -> list:
+        """Embedding texte OpenCLIP (même espace 512-d que les images indexées)."""
+        self.load_model()
+        tokenizer = open_clip.get_tokenizer("ViT-B-32")
+        tokens = tokenizer([text[:300]])
+        with torch.no_grad():
+            text_features = self.model.encode_text(tokens)
+            text_features /= text_features.norm(dim=-1, keepdim=True)
+        return text_features.cpu().numpy().flatten().tolist()
+
 vision_engine = VisionEngine()
 
 def get_vision_engine():
