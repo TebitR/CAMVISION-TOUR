@@ -1,21 +1,26 @@
 import { storageGet, storageSet } from '../utils/safeStorage';
 
 const CACHE_KEY = '@camvision/nearby_monuments_v1';
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 min (équivalent staleTime React Query)
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 min
 
 /**
  * Cache local des monuments nearby — affichage instantané à l'ouverture Carte.
+ * La langue est stockée : un changement de langue invalide le cache.
  */
-export async function loadNearbyCache() {
+export async function loadNearbyCache(lang = 'fr') {
   try {
     const raw = await storageGet(CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || !Array.isArray(parsed.monuments)) return null;
+    const cachedLang = (parsed.lang || 'fr').toLowerCase();
+    const want = (lang || 'fr').toLowerCase();
+    if (cachedLang !== want) return null;
     return {
       monuments: parsed.monuments,
       lat: parsed.lat,
       lng: parsed.lng,
+      lang: cachedLang,
       savedAt: parsed.savedAt || 0,
       fresh: Date.now() - (parsed.savedAt || 0) < CACHE_TTL_MS,
     };
@@ -25,7 +30,7 @@ export async function loadNearbyCache() {
   }
 }
 
-export async function saveNearbyCache(monuments, lat, lng) {
+export async function saveNearbyCache(monuments, lat, lng, lang = 'fr') {
   try {
     await storageSet(
       CACHE_KEY,
@@ -33,6 +38,7 @@ export async function saveNearbyCache(monuments, lat, lng) {
         monuments: monuments || [],
         lat,
         lng,
+        lang: (lang || 'fr').toLowerCase(),
         savedAt: Date.now(),
       })
     );

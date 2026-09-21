@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/splash-accueil.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash-accueil.png",
       "resizeMode": "contain",
@@ -16,7 +16,9 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "CAMVISION TOUR utilise votre position pour afficher les monuments et musées à proximité et calculer les distances.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "CAMVISION TOUR peut vous alerter lorsque vous approchez d'un site patrimonial."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "CAMVISION TOUR peut vous alerter lorsque vous approchez d'un site patrimonial.",
+        "NSCameraUsageDescription": "CAMVISION TOUR utilise la caméra pour reconnaître monuments et objets patrimoniaux.",
+        "NSPhotoLibraryUsageDescription": "CAMVISION TOUR accède à vos photos pour analyser une image de monument importée."
       }
     },
     "android": {
@@ -27,7 +29,10 @@
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "FOREGROUND_SERVICE"
+        "FOREGROUND_SERVICE",
+        "CAMERA",
+        "READ_MEDIA_IMAGES",
+        "READ_EXTERNAL_STORAGE"
       ],
       "package": "com.tebit.camvisionmobile"
     },
@@ -42,6 +47,20 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Autoriser CAMVISION TOUR à utiliser votre position pour les alertes de proximité patrimoniale.",
           "locationWhenInUsePermission": "Autoriser CAMVISION TOUR à utiliser votre position pour trouver les monuments proches."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Autoriser CAMVISION TOUR à utiliser la caméra pour reconnaître monuments et objets patrimoniaux.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Autoriser CAMVISION TOUR à accéder à vos photos pour analyser une image de monument."
         }
       ]
     ]

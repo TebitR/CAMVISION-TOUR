@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -12,10 +12,12 @@ import {
   ScrollView,
   Alert,
   Keyboard,
+  PanResponder,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import * as Haptics from 'expo-haptics';
 import {
   useAudioPlayer,
   useAudioPlayerStatus,
@@ -267,6 +269,7 @@ export default function MapMonumentSheet({
   const sendAsk = async () => {
     const q = askQuery.trim();
     if (!q || !monument?.id || askLoading) return;
+    Keyboard.dismiss();
     setAskMessages((prev) => [...prev, { role: 'user', text: q }]);
     setAskQuery('');
     setAskLoading(true);
@@ -287,6 +290,40 @@ export default function MapMonumentSheet({
       setAskLoading(false);
     }
   };
+
+  const handleClose = useCallback(() => {
+    Keyboard.dismiss();
+    resetForMonument();
+    onClose?.();
+  }, [onClose, resetForMonument]);
+
+  const dragY = useRef(new Animated.Value(0)).current;
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, g) =>
+          g.dy > 6 && Math.abs(g.dy) > Math.abs(g.dx),
+        onPanResponderMove: (_, g) => {
+          if (g.dy > 0) dragY.setValue(g.dy);
+        },
+        onPanResponderRelease: (_, g) => {
+          if (g.dy > 90 || g.vy > 1.1) {
+            if (Platform.OS === 'ios') {
+              Haptics.selectionAsync().catch(() => {});
+            }
+            handleClose();
+            dragY.setValue(0);
+            return;
+          }
+          Animated.spring(dragY, {
+            toValue: 0,
+            useNativeDriver: true,
+            friction: 8,
+          }).start();
+        },
+      }),
+    [dragY, handleClose]
+  );
 
   if (!monument) return null;
 
@@ -310,13 +347,7 @@ export default function MapMonumentSheet({
     outputRange: [1, 1],
   });
 
-  const handleClose = () => {
-    Keyboard.dismiss();
-    resetForMonument();
-    onClose?.();
-  };
-
-  const dockBottom = 78 + Math.min(bottomInset, 14);
+  const dockBottom = 78 + Math.max(bottomInset, 8);
   const sheetBottom =
     keyboardHeight > 0 ? Math.max(keyboardHeight + 8, 12) : dockBottom;
   const keyboardOpen = keyboardHeight > 0;
@@ -330,16 +361,23 @@ export default function MapMonumentSheet({
           backgroundColor: colors.card,
           borderColor: colors.border,
           bottom: sheetBottom,
-          transform: [{ translateY: slide }],
+          transform: [{ translateY: Animated.add(slide, dragY) }],
           zIndex: keyboardOpen ? 40 : 20,
         },
       ]}
     >
-      <TouchableOpacity style={styles.close} onPress={handleClose} hitSlop={12}>
+      <TouchableOpacity
+        style={styles.close}
+        onPress={handleClose}
+        hitSlop={16}
+        accessibilityRole="button"
+      >
         <Ionicons name="close" size={18} color={colors.textMuted} />
       </TouchableOpacity>
 
-      <View style={styles.handle} />
+      <View style={styles.handleHit} {...panResponder.panHandlers}>
+        <View style={styles.handle} />
+      </View>
 
       <View style={styles.header}>
         {!compactHeader && (
@@ -526,6 +564,7 @@ export default function MapMonumentSheet({
                     style={[styles.askThread, keyboardOpen && styles.askThreadCompact]}
                     nestedScrollEnabled
                     keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="interactive"
                   >
                     {askMessages.slice(-6).map((m, i) => (
                       <View
@@ -575,7 +614,10 @@ export default function MapMonumentSheet({
                     multiline
                     numberOfLines={3}
                     textAlignVertical="top"
-                    blurOnSubmit={false}
+                    returnKeyType="send"
+                    blurOnSubmit
+                    onSubmitEditing={sendAsk}
+                    accessibilityLabel={t('scan.askPlaceholder')}
                   />
                   <View style={styles.askSideBtns}>
                     <TouchableOpacity
@@ -586,10 +628,16 @@ export default function MapMonumentSheet({
                       ]}
                       onPress={sendAsk}
                       disabled={!askQuery.trim() || askLoading}
+                      accessibilityRole="button"
                     >
                       <Ionicons name="send" size={18} color="#fff" />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.expandIcon} onPress={expandActions} hitSlop={8}>
+                    <TouchableOpacity
+                      style={styles.expandIcon}
+                      onPress={expandActions}
+                      hitSlop={12}
+                      accessibilityRole="button"
+                    >
                       <Ionicons name="options-outline" size={20} color={colors.textMuted} />
                     </TouchableOpacity>
                   </View>
@@ -623,16 +671,30 @@ const styles = StyleSheet.create({
       android: { elevation: 8 },
     }),
   },
+  handleHit: {
+    alignSelf: 'stretch',
+    paddingVertical: 8,
+  },
   handle: {
     alignSelf: 'center',
-    width: 36,
-    height: 4,
-    borderRadius: 2,
+    width: 40,
+    height: 5,
+    borderRadius: 3,
     backgroundColor: '#94a3b8',
-    marginBottom: 10,
+    opacity: 0.7,
+    marginBottom: 6,
   },
-  close: { position: 'absolute', right: 10, top: 10, zIndex: 2, padding: 4 },
-  header: { flexDirection: 'row', gap: 12, paddingRight: 24 },
+  close: {
+    position: 'absolute',
+    right: 8,
+    top: 8,
+    zIndex: 2,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  header: { flexDirection: 'row', gap: 12, paddingRight: 28 },
   thumb: { width: 72, height: 72, borderRadius: 14, backgroundColor: '#e2e8f0' },
   title: { fontSize: 16, fontWeight: '800' },
   meta: { fontSize: 12, marginTop: 4, fontWeight: '600' },
@@ -653,7 +715,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingVertical: 11,
     borderRadius: 12,
-    minHeight: 42,
+    minHeight: 44,
   },
   actionSecondary: {
     backgroundColor: 'transparent',
@@ -671,8 +733,8 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   railBtn: {
-    width: 40,
-    height: 36,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -696,9 +758,9 @@ const styles = StyleSheet.create({
     minHeight: 140,
   },
   playBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -751,9 +813,9 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   askSend: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },

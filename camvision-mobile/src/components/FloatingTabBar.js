@@ -4,6 +4,7 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '../theme/ThemeContext';
 
 const TAB_META = {
@@ -18,7 +19,8 @@ export default function FloatingTabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { isDark, colors } = useTheme();
-  const bottomOffset = Platform.OS === 'ios' ? Math.min(insets.bottom, 14) : 10;
+  // Respecter l'home indicator iOS (ne pas plafonner agressivement)
+  const bottomOffset = Platform.OS === 'ios' ? Math.max(insets.bottom, 8) : 10;
 
   return (
     <View style={[styles.wrap, { bottom: bottomOffset }]}>
@@ -37,6 +39,9 @@ export default function FloatingTabBar({ state, descriptors, navigation }) {
                 canPreventDefault: true,
               });
               if (!isFocused && !event.defaultPrevented) {
+                if (Platform.OS === 'ios') {
+                  Haptics.selectionAsync().catch(() => {});
+                }
                 navigation.navigate(route.name);
               }
             };
@@ -45,6 +50,7 @@ export default function FloatingTabBar({ state, descriptors, navigation }) {
               <TouchableOpacity
                 key={route.key}
                 accessibilityRole="button"
+                accessibilityLabel={label}
                 accessibilityState={isFocused ? { selected: true } : {}}
                 onPress={onPress}
                 style={styles.item}
@@ -60,7 +66,7 @@ export default function FloatingTabBar({ state, descriptors, navigation }) {
                     style={[
                       styles.label,
                       { color: colors.textMuted },
-                      isFocused && { color: colors.primary },
+                      isFocused && { color: colors.primary, fontWeight: '800' },
                     ]}
                     numberOfLines={1}
                   >
@@ -95,10 +101,10 @@ const styles = StyleSheet.create({
   inner: {
     flexDirection: 'row',
     backgroundColor: 'rgba(255,255,255,0.82)',
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 6,
   },
-  item: { flex: 1, alignItems: 'center' },
+  item: { flex: 1, alignItems: 'center', minHeight: 48 },
   itemInner: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -106,8 +112,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 18,
     minWidth: 56,
+    minHeight: 44,
   },
   itemActive: { backgroundColor: 'rgba(16, 185, 129, 0.12)' },
-  label: { marginTop: 2, fontSize: 10, color: '#64748b', fontWeight: '600' },
-  labelActive: { color: '#059669', fontWeight: '800' },
+  label: { marginTop: 2, fontSize: 11, color: '#64748b', fontWeight: '600' },
 });

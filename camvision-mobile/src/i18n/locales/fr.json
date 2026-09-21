@@ -23,11 +23,16 @@
     "scanTitle": "Scanner un objet ou monument",
     "scanSub": "Pointez votre caméra pour découvrir son histoire",
     "recommendations": "Recommandations",
-    "loadingSites": "Chargement des sites phares de Yaoundé..."
+    "loadingSites": "Chargement des sites phares de Yaoundé...",
+    "emptyTitle": "Sites à proximité sur la carte",
+    "emptySub": "Ouvrez la carte pour voir les monuments autour de vous.",
+    "openMap": "Voir la carte"
   },
   "explore": {
     "title": "Découverte",
-    "subtitle": "Parcours et collections patrimoniales — bientôt disponibles."
+    "subtitle": "Parcours et collections patrimoniales — bientôt disponibles. En attendant, explorez la carte ou lancez un scan.",
+    "openMap": "Ouvrir la carte",
+    "openScan": "Scanner un site"
   },
   "map": {
     "title": "Carte",

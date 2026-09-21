@@ -23,11 +23,16 @@
     "scanTitle": "Objekt oder Denkmal scannen",
     "scanSub": "Richten Sie die Kamera aus, um die Geschichte zu entdecken",
     "recommendations": "Empfehlungen",
-    "loadingSites": "Wichtige Orte in Yaoundé werden geladen..."
+    "loadingSites": "Wichtige Orte in Yaoundé werden geladen...",
+    "emptyTitle": "Orte in der Nähe auf der Karte",
+    "emptySub": "Öffnen Sie die Karte, um Denkmäler um Sie herum zu sehen.",
+    "openMap": "Karte öffnen"
   },
   "explore": {
     "title": "Entdeckung",
-    "subtitle": "Kulturpfade und Sammlungen — demnächst."
+    "subtitle": "Kulturpfade und Sammlungen — demnächst. Bis dahin Karte erkunden oder scannen.",
+    "openMap": "Karte öffnen",
+    "openScan": "Ort scannen"
   },
   "map": {
     "title": "Karte",

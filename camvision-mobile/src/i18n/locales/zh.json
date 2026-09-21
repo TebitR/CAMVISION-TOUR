@@ -23,11 +23,16 @@
     "scanTitle": "扫描物品或纪念碑",
     "scanSub": "对准摄像头，发现它的历史",
     "recommendations": "推荐",
-    "loadingSites": "正在加载雅温得地标景点..."
+    "loadingSites": "正在加载雅温得地标景点...",
+    "emptyTitle": "地图上的附近景点",
+    "emptySub": "打开地图查看周围的纪念碑。",
+    "openMap": "查看地图"
   },
   "explore": {
     "title": "发现",
-    "subtitle": "遗产路线与收藏 — 即将推出。"
+    "subtitle": "遗产路线与收藏即将推出。眼下可先浏览地图或开始扫描。",
+    "openMap": "打开地图",
+    "openScan": "扫描景点"
   },
   "map": {
     "title": "地图",

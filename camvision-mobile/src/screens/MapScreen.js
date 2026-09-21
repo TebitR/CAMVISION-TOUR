@@ -118,6 +118,7 @@ export default function MapScreen() {
   const isFollowingUserRef = useRef(true);
   const searchCenterRef = useRef(null);
   const cachedMonumentsRef = useRef([]);
+  const langBootRef = useRef(true);
 
   const dismissKeyboard = useCallback(() => {
     Keyboard.dismiss();
@@ -195,7 +196,7 @@ export default function MapScreen() {
         setUsingCache(false);
         searchCenterRef.current = { latitude: lat, longitude: lng };
         setShowSearchArea(false);
-        saveNearbyCache(next, lat, lng);
+        saveNearbyCache(next, lat, lng, lang);
       } catch (e) {
         console.warn('nearby monuments:', e?.message || e);
         setIsOnline(false);
@@ -228,7 +229,7 @@ export default function MapScreen() {
 
     (async () => {
       // 1) Cache local immédiat (pas d'écran vide)
-      const cached = await loadNearbyCache();
+      const cached = await loadNearbyCache(lang);
       if (cancelled) return;
       if (cached?.monuments?.length) {
         cachedMonumentsRef.current = cached.monuments;
@@ -238,6 +239,12 @@ export default function MapScreen() {
           searchCenterRef.current = { latitude: cached.lat, longitude: cached.lng };
           setUserCoords((prev) => prev || { latitude: cached.lat, longitude: cached.lng });
         }
+      } else {
+        // Cache absent ou autre langue → éviter titres obsolètes (ex. zh après switch de)
+        cachedMonumentsRef.current = [];
+        setMonuments([]);
+        setUsingCache(false);
+        setSelected(null);
       }
 
       // 2) Position rapide : lastKnown → sinon Yaoundé, fetch réseau tout de suite
@@ -259,6 +266,7 @@ export default function MapScreen() {
       const needNetwork =
         !cached?.fresh ||
         !cached?.monuments?.length ||
+        cached?.lang !== lang ||
         (cached.lat != null &&
           haversineMeters(cached.lat, cached.lng, quick.latitude, quick.longitude) > 800);
 
@@ -340,7 +348,29 @@ export default function MapScreen() {
         headingWatchRef.current = null;
       }
     };
-  }, [isFocused, fetchNearby]);
+  }, [isFocused, fetchNearby, lang]);
+
+  // Recharger les métadonnées localisées dès qu'on change de langue
+  useEffect(() => {
+    if (langBootRef.current) {
+      langBootRef.current = false;
+      return;
+    }
+    if (!isFocused) return;
+    const center =
+      userCoords ||
+      searchCenterRef.current ||
+      (mapRegion
+        ? { latitude: mapRegion.latitude, longitude: mapRegion.longitude }
+        : null);
+    if (!center) return;
+    setSelected(null);
+    setHighlightedIds(null);
+    cachedMonumentsRef.current = [];
+    setMonuments([]);
+    fetchNearby(center.latitude, center.longitude, { silent: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- volontairement déclenché par lang seulement
+  }, [lang]);
 
   useEffect(() => {
     if (!userCoords || !mapRef.current || didCenterRef.current) return;
@@ -735,7 +765,7 @@ export default function MapScreen() {
     fetchNearby(mapRegion.latitude, mapRegion.longitude, { fromAreaSearch: true });
   };
 
-  const dockPadBottom = 88 + Math.min(insets.bottom, 14);
+  const dockPadBottom = 88 + Math.max(insets.bottom, 8);
   // Hauteur dock ≈ titre+cartes (220) + padding tab. bottom FAB doit être ≥ ce total.
   const listDockHeight = 220 + dockPadBottom;
   const mapBottomClearance = selected ? 310 : listDockHeight + 8;
@@ -787,7 +817,16 @@ export default function MapScreen() {
           dismissKeyboard();
           pauseFollowForExploration();
         }}
-        onPress={dismissKeyboard}
+        onPress={() => {
+          dismissKeyboard();
+          if (selected) setSelected(null);
+        }}
+        mapPadding={{
+          top: navigating ? insets.top + 80 : insets.top + 160,
+          right: 12,
+          bottom: navigating ? 40 : mapBottomClearance,
+          left: 12,
+        }}
         onRegionChangeComplete={onMapRegionComplete}
       >
         <UserHeadingMarker
@@ -929,7 +968,7 @@ export default function MapScreen() {
           style={[
             styles.networkBadge,
             {
-              top: insets.top + 8,
+              top: insets.top + 152,
               backgroundColor: usingCache ? '#92400e' : '#7f1d1d',
             },
           ]}
@@ -1292,7 +1331,7 @@ export default function MapScreen() {
                   {filteredMonuments.map((m) => {
                     const active = selected?.id === m.id;
                     return (
-                      <TouchableOpacity
+                      <View
                         key={m.id}
                         style={[
                           styles.card,
@@ -1301,29 +1340,39 @@ export default function MapScreen() {
                             borderColor: active ? colors.primary : colors.border,
                           },
                         ]}
-                        onPress={() => openMonumentCard(m)}
-                        activeOpacity={0.9}
                       >
-                        <Image
-                          source={monumentImageSource(m.image_url)}
-                          style={styles.cardImage}
-                          resizeMode="cover"
-                        />
-                        <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
-                          {m.title}
-                        </Text>
-                        <Text style={[styles.cardDist, { color: colors.primary }]}>
-                          {formatDistance(m.distance_km)}
-                        </Text>
+                        <TouchableOpacity
+                          onPress={() => openMonumentCard(m)}
+                          activeOpacity={0.9}
+                          accessibilityRole="button"
+                        >
+                          <Image
+                            source={monumentImageSource(m.image_url)}
+                            style={styles.cardImage}
+                            resizeMode="cover"
+                          />
+                          <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
+                            {m.title}
+                          </Text>
+                          <Text style={[styles.cardDist, { color: colors.primary }]}>
+                            {formatDistance(m.distance_km)}
+                          </Text>
+                        </TouchableOpacity>
                         <TouchableOpacity
                           style={styles.cardDir}
-                          onPress={() => startInAppNavigation(m)}
+                          onPress={() => {
+                            dismissKeyboard();
+                            startInAppNavigation(m);
+                          }}
+                          hitSlop={8}
+                          accessibilityRole="button"
+                          accessibilityLabel={t('map.directions')}
                         >
                           <Text style={[styles.cardDirText, { color: colors.primary }]}>
                             {t('map.directions')}
                           </Text>
                         </TouchableOpacity>
-                      </TouchableOpacity>
+                      </View>
                     );
                   })}
                 </ScrollView>
@@ -1349,10 +1398,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
+    minHeight: 44,
   },
   searchInput: {
     flex: 1,
@@ -1622,13 +1672,13 @@ const styles = StyleSheet.create({
   searchAreaText: { fontWeight: '800', fontSize: 13 },
   networkBadge: {
     position: 'absolute',
-    right: 64,
+    left: 16,
     zIndex: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingVertical: 5,
-    paddingHorizontal: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     borderRadius: 10,
   },
   networkBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },

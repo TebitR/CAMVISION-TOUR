@@ -5,11 +5,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { LANGUAGE_OPTIONS } from '../i18n';
 import { useTheme } from '../theme/ThemeContext';
 import { storageSet } from '../utils/safeStorage';
@@ -26,6 +28,9 @@ export default function OnboardingScreen({ onDone }) {
   );
 
   const confirm = async () => {
+    if (Platform.OS === 'ios') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    }
     await i18n.changeLanguage(selected);
     await storageSet(LANG_STORAGE_KEY, selected);
     await storageSet(ONBOARDING_DONE_KEY, '1');
@@ -77,7 +82,12 @@ export default function OnboardingScreen({ onDone }) {
         })}
       </ScrollView>
 
-      <TouchableOpacity style={[styles.cta, { backgroundColor: colors.accent }]} onPress={confirm}>
+      <TouchableOpacity
+        style={[styles.cta, { backgroundColor: colors.accent }]}
+        onPress={confirm}
+        accessibilityRole="button"
+        accessibilityLabel={t('onboarding.continue')}
+      >
         <Text style={styles.ctaText}>{t('onboarding.continue')}</Text>
       </TouchableOpacity>
     </View>
@@ -104,6 +114,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 28,
     alignItems: 'center',
+    minHeight: 52,
+    justifyContent: 'center',
   },
   ctaText: { color: '#fff', fontWeight: '800', fontSize: 15 },
 });

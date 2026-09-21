@@ -23,11 +23,16 @@
     "scanTitle": "Escanear un objeto o monumento",
     "scanSub": "Apunta tu cámara para descubrir su historia",
     "recommendations": "Recomendaciones",
-    "loadingSites": "Cargando sitios destacados de Yaundé..."
+    "loadingSites": "Cargando sitios destacados de Yaundé...",
+    "emptyTitle": "Sitios cercanos en el mapa",
+    "emptySub": "Abre el mapa para ver monumentos a tu alrededor.",
+    "openMap": "Ver el mapa"
   },
   "explore": {
     "title": "Descubrimiento",
-    "subtitle": "Rutas y colecciones patrimoniales — próximamente."
+    "subtitle": "Rutas y colecciones patrimoniales — próximamente. Mientras tanto, explora el mapa o escanea un sitio.",
+    "openMap": "Abrir el mapa",
+    "openScan": "Escanear un sitio"
   },
   "map": {
     "title": "Mapa",

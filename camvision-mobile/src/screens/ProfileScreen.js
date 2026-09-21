@@ -121,7 +121,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 5,
     paddingVertical: 12,
+    paddingHorizontal: 4,
     borderRadius: 11,
+    minHeight: 44,
   },
-  segmentLabel: { fontWeight: '700', fontSize: 12 },
+  segmentLabel: { fontWeight: '700', fontSize: 11 },
 });

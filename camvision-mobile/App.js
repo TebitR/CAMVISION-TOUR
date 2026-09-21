@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, DefaultTheme, DarkTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -14,7 +15,10 @@ import MapScreen from './src/screens/MapScreen';
 import ScanScreen from './src/screens/ScanScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import BrandingScreen from './src/screens/BrandingScreen';
-import OnboardingScreen, { LANG_STORAGE_KEY } from './src/screens/OnboardingScreen';
+import OnboardingScreen, {
+  LANG_STORAGE_KEY,
+  ONBOARDING_DONE_KEY,
+} from './src/screens/OnboardingScreen';
 import FloatingTabBar from './src/components/FloatingTabBar';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import {
@@ -56,10 +60,12 @@ function AppRoot() {
         if (savedLang) {
           await i18n.changeLanguage(resolveAppLanguage(savedLang));
         }
+        const onboardingDone = await storageGet(ONBOARDING_DONE_KEY);
+        setPhase(onboardingDone === '1' ? 'main' : 'branding');
       } catch (e) {
-        console.warn('Chargement langue:', e?.message || e);
+        console.warn('Chargement démarrage:', e?.message || e);
+        setPhase('branding');
       }
-      setPhase('branding');
     })();
   }, []);
 
@@ -93,7 +99,12 @@ function AppRoot() {
   };
 
   if (phase === 'loading') {
-    return null;
+    return (
+      <View style={[styles.boot, { backgroundColor: colors.bg }]}>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
   }
 
   if (phase === 'branding') {
@@ -121,3 +132,11 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  boot: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

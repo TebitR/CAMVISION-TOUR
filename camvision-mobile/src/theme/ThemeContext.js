@@ -19,10 +19,10 @@ export const lightColors = {
   bubbleUser: '#059669',
   bubbleAi: '#e2e8f0',
   danger: '#dc2626',
-  modalBg: 'rgba(15, 23, 42, 0.92)',
-  modalText: '#f8fafc',
-  modalMuted: '#94a3b8',
-  miniPlayer: 'rgba(15, 23, 42, 0.94)',
+  modalBg: 'rgba(255, 255, 255, 0.96)',
+  modalText: '#0f172a',
+  modalMuted: '#64748b',
+  miniPlayer: 'rgba(248, 250, 252, 0.98)',
 };
 
 export const darkColors = {
@@ -40,10 +40,10 @@ export const darkColors = {
   bubbleUser: '#059669',
   bubbleAi: '#334155',
   danger: '#f87171',
-  modalBg: 'rgba(2, 6, 23, 0.96)',
+  modalBg: 'rgba(15, 23, 42, 0.96)',
   modalText: '#f8fafc',
   modalMuted: '#94a3b8',
-  miniPlayer: 'rgba(2, 6, 23, 0.96)',
+  miniPlayer: 'rgba(15, 23, 42, 0.98)',
 };
 
 const ThemeContext = createContext({

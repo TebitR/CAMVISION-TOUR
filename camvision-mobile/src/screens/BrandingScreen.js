@@ -8,14 +8,18 @@ import {
   Easing,
   TouchableOpacity,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
 
 export default function BrandingScreen({ onStart }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const fadeLogo = useRef(new Animated.Value(0)).current;
   const scaleLogo = useRef(new Animated.Value(0.82)).current;
   const floatY = useRef(new Animated.Value(0)).current;
@@ -99,8 +103,15 @@ export default function BrandingScreen({ onStart }) {
     };
   }, [fadeLogo, scaleLogo, floatY, fadeText, fadeBtn, pulse, pinDrop]);
 
+  const handleStart = () => {
+    if (Platform.OS === 'ios') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
+    onStart?.();
+  };
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 24) + 16 }]}>
       <StatusBar style="dark" />
 
       <Animated.View
@@ -136,7 +147,13 @@ export default function BrandingScreen({ onStart }) {
       </Animated.View>
 
       <Animated.View style={{ opacity: fadeBtn, width: '100%', paddingHorizontal: 36 }}>
-        <TouchableOpacity style={styles.cta} activeOpacity={0.85} onPress={onStart}>
+        <TouchableOpacity
+          style={styles.cta}
+          activeOpacity={0.85}
+          onPress={handleStart}
+          accessibilityRole="button"
+          accessibilityLabel={t('branding.cta')}
+        >
           <Text style={styles.ctaText}>{t('branding.cta')}</Text>
         </TouchableOpacity>
       </Animated.View>
@@ -150,7 +167,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingBottom: 40,
   },
   halo: {
     position: 'absolute',

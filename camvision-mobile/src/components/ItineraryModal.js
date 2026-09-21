@@ -7,11 +7,12 @@ import {
   StyleSheet,
   ActivityIndicator,
   Pressable,
-  ScrollView,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 
 const DURATIONS = [
   { minutes: 30, labelKey: 'map.tourDur30' },
@@ -38,12 +39,16 @@ export default function ItineraryModal({
   onGenerate,
 }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [duration, setDuration] = useState(60);
   const [prefs, setPrefs] = useState(['histoire', 'culture']);
 
   const canSubmit = useMemo(() => !loading && duration >= 15, [loading, duration]);
 
   const togglePref = (id) => {
+    if (Platform.OS === 'ios') {
+      Haptics.selectionAsync().catch(() => {});
+    }
     setPrefs((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
     );
@@ -51,6 +56,9 @@ export default function ItineraryModal({
 
   const submit = () => {
     if (!canSubmit) return;
+    if (Platform.OS === 'ios') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    }
     onGenerate?.({
       max_duration_minutes: duration,
       preferences: prefs,
@@ -61,12 +69,25 @@ export default function ItineraryModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable
-          style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+              paddingBottom: Math.max(insets.bottom, 16) + 12,
+            },
+          ]}
           onPress={(e) => e.stopPropagation()}
         >
+          <View style={styles.handle} />
           <View style={styles.head}>
             <Text style={[styles.title, { color: colors.text }]}>{t('map.tourTitle')}</Text>
-            <TouchableOpacity onPress={onClose} hitSlop={10}>
+            <TouchableOpacity
+              onPress={onClose}
+              hitSlop={12}
+              style={styles.closeBtn}
+              accessibilityRole="button"
+            >
               <Ionicons name="close" size={20} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
@@ -86,9 +107,21 @@ export default function ItineraryModal({
                       borderColor: active ? colors.primary : colors.border,
                     },
                   ]}
-                  onPress={() => setDuration(d.minutes)}
+                  onPress={() => {
+                    if (Platform.OS === 'ios') {
+                      Haptics.selectionAsync().catch(() => {});
+                    }
+                    setDuration(d.minutes);
+                  }}
+                  activeOpacity={0.85}
                 >
-                  <Text style={{ color: active ? '#fff' : colors.text, fontWeight: '700', fontSize: 13 }}>
+                  <Text
+                    style={{
+                      color: active ? '#fff' : colors.text,
+                      fontWeight: '700',
+                      fontSize: 13,
+                    }}
+                  >
                     {t(d.labelKey)}
                   </Text>
                 </TouchableOpacity>
@@ -97,12 +130,12 @@ export default function ItineraryModal({
           </View>
 
           <Text style={[styles.section, { color: colors.text }]}>{t('map.tourThemes')}</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rowWrap}>
-            {THEMES.map((th) => {
-              const active = prefs.includes(th.id);
+          <View style={styles.rowWrap}>
+            {THEMES.map((theme) => {
+              const active = prefs.includes(theme.id);
               return (
                 <TouchableOpacity
-                  key={th.id}
+                  key={theme.id}
                   style={[
                     styles.chip,
                     {
@@ -110,22 +143,30 @@ export default function ItineraryModal({
                       borderColor: active ? colors.primary : colors.border,
                     },
                   ]}
-                  onPress={() => togglePref(th.id)}
+                  onPress={() => togglePref(theme.id)}
+                  activeOpacity={0.85}
                 >
-                  <Ionicons name={th.icon} size={14} color={active ? '#fff' : colors.primary} />
-                  <Text style={{ color: active ? '#fff' : colors.text, fontWeight: '700', fontSize: 13 }}>
-                    {t(th.labelKey)}
+                  <Ionicons
+                    name={theme.icon}
+                    size={14}
+                    color={active ? '#fff' : colors.primary}
+                  />
+                  <Text
+                    style={{
+                      color: active ? '#fff' : colors.text,
+                      fontWeight: '700',
+                      fontSize: 13,
+                    }}
+                  >
+                    {t(theme.labelKey)}
                   </Text>
                 </TouchableOpacity>
               );
             })}
-          </ScrollView>
+          </View>
 
           <TouchableOpacity
-            style={[
-              styles.cta,
-              { backgroundColor: colors.primary, opacity: canSubmit ? 1 : 0.5 },
-            ]}
+            style={[styles.cta, { backgroundColor: colors.primary, opacity: canSubmit ? 1 : 0.5 }]}
             onPress={submit}
             disabled={!canSubmit}
             activeOpacity={0.85}
@@ -156,7 +197,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
     padding: 18,
-    paddingBottom: 28,
     gap: 10,
     ...Platform.select({
       ios: {
@@ -168,7 +208,22 @@ const styles = StyleSheet.create({
       android: { elevation: 10 },
     }),
   },
+  handle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#94a3b8',
+    opacity: 0.6,
+    marginBottom: 4,
+  },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  closeBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: { fontSize: 18, fontWeight: '800' },
   hint: { fontSize: 13, lineHeight: 18, marginBottom: 4 },
   section: { fontSize: 14, fontWeight: '700', marginTop: 6 },
@@ -181,6 +236,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
+    minHeight: 44,
   },
   cta: {
     marginTop: 14,

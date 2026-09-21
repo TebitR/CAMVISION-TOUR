@@ -23,11 +23,16 @@
     "scanTitle": "Scan an object or monument",
     "scanSub": "Point your camera to discover its history",
     "recommendations": "Recommendations",
-    "loadingSites": "Loading landmark sites in Yaoundé..."
+    "loadingSites": "Loading landmark sites in Yaoundé...",
+    "emptyTitle": "Nearby sites on the map",
+    "emptySub": "Open the map to see monuments around you.",
+    "openMap": "Open map"
   },
   "explore": {
     "title": "Discover",
-    "subtitle": "Heritage trails and collections — coming soon."
+    "subtitle": "Heritage trails and collections — coming soon. Meanwhile, browse the map or start a scan.",
+    "openMap": "Open map",
+    "openScan": "Scan a site"
   },
   "map": {
     "title": "Map",

@@ -1,8 +1,9 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '../theme/ThemeContext';
 
 export default function HomeScreen({ navigation }) {
@@ -10,10 +11,20 @@ export default function HomeScreen({ navigation }) {
   const { t } = useTranslation();
   const { colors } = useTheme();
 
+  const go = (route) => {
+    if (Platform.OS === 'ios') {
+      Haptics.selectionAsync().catch(() => {});
+    }
+    navigation.navigate(route);
+  };
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.bg }]}
-      contentContainerStyle={[styles.contentContainer, { paddingTop: insets.top + 16, paddingBottom: 110 }]}
+      contentContainerStyle={[
+        styles.contentContainer,
+        { paddingTop: insets.top + 16, paddingBottom: 110 + Math.max(insets.bottom, 8) },
+      ]}
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
@@ -26,8 +37,10 @@ export default function HomeScreen({ navigation }) {
           styles.scanBanner,
           { backgroundColor: colors.card, borderColor: colors.border },
         ]}
-        onPress={() => navigation.navigate('Scan')}
+        onPress={() => go('Scan')}
         activeOpacity={0.9}
+        accessibilityRole="button"
+        accessibilityLabel={t('home.scanTitle')}
       >
         <View style={styles.scanBannerText}>
           <View style={styles.badgeAi}>
@@ -46,10 +59,23 @@ export default function HomeScreen({ navigation }) {
         <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.recommendations')}</Text>
         <View style={[styles.cardPlaceholder, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={[styles.iconCircle, { backgroundColor: colors.primarySoft }]}>
-            <Ionicons name="location" size={20} color={colors.primary} />
+            <Ionicons name="map" size={20} color={colors.primary} />
           </View>
-          <Text style={[styles.cardText, { color: colors.textMuted }]}>{t('home.loadingSites')}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.cardText, { color: colors.text }]}>{t('home.emptyTitle')}</Text>
+            <Text style={[styles.cardSub, { color: colors.textMuted }]}>{t('home.emptySub')}</Text>
+          </View>
         </View>
+        <TouchableOpacity
+          style={[styles.ctaRow, { backgroundColor: colors.primary }]}
+          onPress={() => go('Carte')}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={t('home.openMap')}
+        >
+          <Ionicons name="navigate" size={18} color="#fff" />
+          <Text style={styles.ctaText}>{t('home.openMap')}</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -69,6 +95,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderWidth: StyleSheet.hairlineWidth,
     marginBottom: 24,
+    minHeight: 88,
   },
   scanBannerText: { flex: 1, marginRight: 12 },
   badgeAi: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
@@ -92,12 +119,24 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
-  cardText: { fontSize: 13, flex: 1 },
+  cardText: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
+  cardSub: { fontSize: 13, lineHeight: 18 },
+  ctaRow: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    minHeight: 48,
+  },
+  ctaText: { color: '#fff', fontWeight: '800', fontSize: 15 },
 });

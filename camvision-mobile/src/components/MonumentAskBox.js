@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
@@ -24,7 +25,7 @@ export default function MonumentAskBox({
   onInputFocus,
 }) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -32,6 +33,7 @@ export default function MonumentAskBox({
   const send = async () => {
     const q = query.trim();
     if (!q || !monumentId || loading) return;
+    Keyboard.dismiss();
 
     setMessages((prev) => [...prev, { role: 'user', text: q }]);
     setQuery('');
@@ -63,7 +65,12 @@ export default function MonumentAskBox({
       <Text style={[styles.title, { color: colors.modalText }]}>{t('scan.askTitle')}</Text>
 
       {messages.length > 0 && (
-        <ScrollView style={styles.thread} nestedScrollEnabled>
+        <ScrollView
+          style={styles.thread}
+          nestedScrollEnabled
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        >
           {messages.map((m, i) => (
             <View
               key={`${m.role}-${i}`}
@@ -71,10 +78,27 @@ export default function MonumentAskBox({
                 styles.bubble,
                 m.role === 'user'
                   ? { alignSelf: 'flex-end', backgroundColor: colors.bubbleUser }
-                  : { alignSelf: 'flex-start', backgroundColor: 'rgba(148,163,184,0.22)' },
+                  : {
+                      alignSelf: 'flex-start',
+                      backgroundColor: isDark
+                        ? 'rgba(148,163,184,0.22)'
+                        : 'rgba(15,23,42,0.06)',
+                    },
               ]}
             >
-              <Text style={styles.bubbleText}>{m.text}</Text>
+              <Text
+                style={[
+                  styles.bubbleText,
+                  {
+                    color:
+                      m.role === 'user'
+                        ? '#f8fafc'
+                        : colors.modalText,
+                  },
+                ]}
+              >
+                {m.text}
+              </Text>
             </View>
           ))}
         </ScrollView>
@@ -82,23 +106,44 @@ export default function MonumentAskBox({
 
       {loading && (
         <View style={styles.thinking}>
-          <ActivityIndicator size="small" color="#6ee7b7" />
-          <Text style={styles.thinkingText}>{t('scan.askThinking')}</Text>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={[styles.thinkingText, { color: colors.modalMuted }]}>
+            {t('scan.askThinking')}
+          </Text>
         </View>
       )}
 
       <View style={styles.inputRow}>
-        <View style={styles.inputWrap}>
-          <Ionicons name="mic-outline" size={18} color="#94a3b8" style={{ marginRight: 8 }} />
+        <View
+          style={[
+            styles.inputWrap,
+            {
+              backgroundColor: isDark
+                ? 'rgba(255,255,255,0.08)'
+                : 'rgba(15,23,42,0.05)',
+              borderColor: isDark
+                ? 'rgba(255,255,255,0.15)'
+                : 'rgba(15,23,42,0.1)',
+            },
+          ]}
+        >
+          <Ionicons
+            name="chatbubble-outline"
+            size={18}
+            color={colors.modalMuted}
+            style={{ marginRight: 8 }}
+          />
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: colors.modalText }]}
             placeholder={t('scan.askPlaceholder')}
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor={colors.modalMuted}
             value={query}
             onChangeText={setQuery}
             editable={!loading}
             onSubmitEditing={send}
             returnKeyType="send"
+            blurOnSubmit
+            accessibilityLabel={t('scan.askPlaceholder')}
             onFocus={() => onInputFocus?.()}
           />
         </View>
@@ -106,6 +151,8 @@ export default function MonumentAskBox({
           style={[styles.sendBtn, (!query.trim() || loading) && styles.sendDisabled]}
           onPress={send}
           disabled={!query.trim() || loading}
+          accessibilityRole="button"
+          accessibilityLabel={t('scan.askTitle')}
         >
           <Ionicons name="send" size={18} color="#fff" />
         </TouchableOpacity>
@@ -125,24 +172,22 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginBottom: 8,
   },
-  bubbleText: { color: '#f8fafc', fontSize: 13, lineHeight: 19 },
+  bubbleText: { fontSize: 13, lineHeight: 19 },
   thinking: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  thinkingText: { color: '#94a3b8', fontSize: 12 },
+  thinkingText: { fontSize: 12 },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   inputWrap: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 14,
     paddingHorizontal: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.15)',
+    minHeight: 48,
   },
   input: {
     flex: 1,
     paddingVertical: 12,
-    color: '#f8fafc',
     fontSize: 14,
   },
   sendBtn: {

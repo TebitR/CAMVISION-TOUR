@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { StatusBar } from 'expo-status-bar';
 import {
   StyleSheet,
   Text,
@@ -14,6 +15,8 @@ import {
   Platform,
   Keyboard,
   Image,
+  Pressable,
+  PanResponder,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
@@ -28,6 +31,7 @@ import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { useIsFocused, useRoute, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { useTranslation } from 'react-i18next';
 import { resolveAppLanguage } from '../i18n';
 import SoundWave from '../components/SoundWave';
@@ -91,7 +95,7 @@ export default function ScanScreen() {
   const route = useRoute();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const tabClearance = 72 + Math.min(insets.bottom, 14);
+  const tabClearance = 72 + Math.max(insets.bottom, 8);
   const mapIntentHandledRef = useRef(null);
 
   const [permission, requestPermission] = useCameraPermissions();
@@ -501,13 +505,80 @@ export default function ScanScreen() {
     setIsLiveScanning(true);
   };
 
+  const sheetDragY = useRef(new Animated.Value(0)).current;
+  const closeModalRef = useRef(closeModal);
+  closeModalRef.current = closeModal;
+
+  useEffect(() => {
+    if (modalVisible) {
+      sheetDragY.stopAnimation();
+      sheetDragY.setValue(0);
+    }
+  }, [modalVisible, sheetDragY]);
+
+  const sheetPan = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onStartShouldSetPanResponderCapture: () => true,
+        onMoveShouldSetPanResponder: (_, g) =>
+          g.dy > 4 && Math.abs(g.dy) > Math.abs(g.dx),
+        onMoveShouldSetPanResponderCapture: (_, g) =>
+          g.dy > 4 && Math.abs(g.dy) > Math.abs(g.dx),
+        onPanResponderTerminationRequest: () => false,
+        onPanResponderGrant: () => {
+          sheetDragY.stopAnimation();
+          sheetDragY.setValue(0);
+        },
+        onPanResponderMove: (_, g) => {
+          if (g.dy > 0) sheetDragY.setValue(g.dy);
+        },
+        onPanResponderRelease: (_, g) => {
+          const shouldClose = g.dy > 70 || g.vy > 0.9;
+          if (shouldClose) {
+            Animated.timing(sheetDragY, {
+              toValue: 600,
+              duration: 180,
+              useNativeDriver: false,
+            }).start(() => {
+              sheetDragY.setValue(0);
+              closeModalRef.current?.();
+            });
+            return;
+          }
+          Animated.spring(sheetDragY, {
+            toValue: 0,
+            useNativeDriver: false,
+            friction: 8,
+            tension: 80,
+          }).start();
+        },
+      }),
+    [sheetDragY]
+  );
+
   if (!permission) return <View style={[styles.container, { backgroundColor: colors.bg }]} />;
 
   if (!permission.granted) {
     return (
-      <View style={[styles.centeredContainer, { backgroundColor: colors.bg }]}>
+      <View
+        style={[
+          styles.centeredContainer,
+          {
+            backgroundColor: colors.bg,
+            paddingTop: insets.top + 24,
+            paddingBottom: insets.bottom + 24,
+          },
+        ]}
+      >
+        <StatusBar style={isDark ? 'light' : 'dark'} />
         <Text style={[styles.textDark, { color: colors.text }]}>{t('scan.cameraPermission')}</Text>
-        <TouchableOpacity style={styles.btnPrimary} onPress={requestPermission}>
+        <TouchableOpacity
+          style={[styles.btnPrimary, { minHeight: 48, justifyContent: 'center' }]}
+          onPress={requestPermission}
+          accessibilityRole="button"
+          accessibilityLabel={t('scan.allowCamera')}
+        >
           <Text style={styles.btnTextLight}>{t('scan.allowCamera')}</Text>
         </TouchableOpacity>
       </View>
@@ -518,16 +589,47 @@ export default function ScanScreen() {
     ? Math.max(insets.bottom, 8)
     : Math.max(insets.bottom, 10);
 
+  const glassTint = isDark ? 'dark' : 'light';
+  const glassFg = isDark ? '#ffffff' : '#0f172a';
+  const glassFgMuted = isDark ? '#a7f3d0' : colors.primary;
+  const glassCardBg = isDark ? 'rgba(15, 23, 42, 0.22)' : 'rgba(255, 255, 255, 0.38)';
+  const glassBorder = isDark ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.7)';
+  const glassInnerBg = isDark ? 'rgba(15, 23, 42, 0.08)' : 'rgba(255, 255, 255, 0.18)';
+
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#0b1220' : '#0f172a' }]}>
+      <StatusBar style="light" />
       {isFocused ? (
         <View style={styles.camera}>
           <CameraView style={StyleSheet.absoluteFill} ref={(ref) => setCameraRef(ref)} />
-          <View style={styles.overlay} pointerEvents="box-none">
+          <View
+            style={[styles.overlay, { paddingTop: insets.top + 8 }]}
+            pointerEvents="box-none"
+          >
             <View style={styles.topRow}>
-              <BlurView intensity={40} tint="dark" style={[styles.statusBadge, scanning && styles.statusBadgeActive]}>
-                <ActivityIndicator size="small" color="#a7f3d0" style={{ marginRight: 8 }} />
-                <Animated.Text style={[styles.statusText, { opacity: scanPulse }]}>
+              <BlurView
+                intensity={isDark ? 40 : 55}
+                tint={glassTint}
+                style={[
+                  styles.statusBadge,
+                  {
+                    backgroundColor: glassCardBg,
+                    borderColor: glassBorder,
+                  },
+                  scanning && styles.statusBadgeActive,
+                ]}
+              >
+                <ActivityIndicator size="small" color={glassFgMuted} style={{ marginRight: 8 }} />
+                <Animated.Text
+                  style={[
+                    styles.statusText,
+                    {
+                      opacity: scanPulse,
+                      color: glassFg,
+                      textShadowColor: isDark ? 'rgba(0,0,0,0.45)' : 'transparent',
+                    },
+                  ]}
+                >
                   {scanning ? t('scan.analyzing') : t('scan.searching')}
                 </Animated.Text>
               </BlurView>
@@ -541,160 +643,366 @@ export default function ScanScreen() {
       )}
 
       {scanning && (
-        <BlurView intensity={45} tint="dark" style={[styles.scanningCard, { bottom: tabClearance + 70 }]}>
-          <View style={styles.glassInner}>
-            <ActivityIndicator size="large" color="#ffffff" />
-            <Text style={styles.scanningTitle}>{t('scan.scanning')}</Text>
+        <BlurView
+          intensity={isDark ? 45 : 60}
+          tint={glassTint}
+          style={[
+            styles.scanningCard,
+            {
+              bottom: tabClearance + 70,
+              backgroundColor: glassCardBg,
+              borderColor: glassBorder,
+            },
+          ]}
+        >
+          <View style={[styles.glassInner, { backgroundColor: glassInnerBg }]}>
+            <ActivityIndicator size="large" color={isDark ? '#ffffff' : colors.primary} />
+            <Text
+              style={[
+                styles.scanningTitle,
+                {
+                  color: glassFg,
+                  textShadowColor: isDark ? 'rgba(0,0,0,0.5)' : 'transparent',
+                },
+              ]}
+            >
+              {t('scan.scanning')}
+            </Text>
           </View>
         </BlurView>
       )}
 
       <View style={[styles.bottomDock, { bottom: tabClearance }]}>
-        <TouchableOpacity onPress={pickImage} disabled={scanning} activeOpacity={0.9}>
-          <BlurView intensity={40} tint="dark" style={styles.btnGallery}>
-            <Ionicons name="images" size={18} color="#ffffff" />
-            <Text style={styles.btnText}>{t('scan.importGallery')}</Text>
+        <TouchableOpacity
+          onPress={() => {
+            if (Platform.OS === 'ios') {
+              Haptics.selectionAsync().catch(() => {});
+            }
+            pickImage();
+          }}
+          disabled={scanning}
+          activeOpacity={0.9}
+          accessibilityRole="button"
+          accessibilityLabel={t('scan.importGallery')}
+        >
+          <BlurView
+            intensity={isDark ? 40 : 55}
+            tint={glassTint}
+            style={[
+              styles.btnGallery,
+              { backgroundColor: glassCardBg, borderColor: glassBorder },
+            ]}
+          >
+            <Ionicons name="images" size={18} color={glassFg} />
+            <Text
+              style={[
+                styles.btnText,
+                {
+                  color: glassFg,
+                  textShadowColor: isDark ? 'rgba(0,0,0,0.4)' : 'transparent',
+                },
+              ]}
+            >
+              {t('scan.importGallery')}
+            </Text>
           </BlurView>
         </TouchableOpacity>
       </View>
 
-      <Modal visible={modalVisible} animationType="slide" transparent>
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={0}
-        >
-          <View
-            style={[
-              styles.modalShell,
-              {
-                backgroundColor: colors.modalBg,
-                paddingBottom: modalPadBottom,
-              },
-            ]}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={closeModal}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalBackdropFlex} onPress={closeModal} />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={0}
+            style={styles.modalKav}
           >
-            <TouchableOpacity style={styles.closeBtn} onPress={closeModal}>
-              <Ionicons name="close" size={22} color="#ffffff" />
-            </TouchableOpacity>
-
-            {analysisResult && (
-              <View style={styles.modalBody}>
-                <ScrollView
-                  ref={modalScrollRef}
-                  style={styles.modalScroll}
-                  contentContainerStyle={styles.modalScrollContent}
-                  showsVerticalScrollIndicator={false}
-                  keyboardShouldPersistTaps="handled"
-                  keyboardDismissMode="interactive"
+            <Animated.View
+              style={[
+                styles.modalSheetWrap,
+                {
+                  paddingBottom: modalPadBottom,
+                  transform: [{ translateY: sheetDragY }],
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.modalShell,
+                  {
+                    backgroundColor: isDark ? colors.bgElevated : '#ffffff',
+                    borderColor: isDark
+                      ? 'rgba(255,255,255,0.12)'
+                      : 'rgba(15,23,42,0.08)',
+                  },
+                ]}
+              >
+                <View
+                  style={styles.handleHit}
+                  {...sheetPan.panHandlers}
+                  collapsable={false}
                 >
-                  <View style={styles.badgeRow}>
-                    <Text style={styles.categoryBadge}>
-                      {(analysisResult.category || 'artifact').toUpperCase()}
-                    </Text>
-                    <View style={styles.locationBadge}>
-                      <Ionicons name="location" size={14} color="#6ee7b7" />
-                      <Text style={styles.locationText}>{analysisResult.region}</Text>
-                    </View>
-                    {score != null && (
-                      <Text style={styles.scoreBadge}>{Math.round(score * 100)}%</Text>
-                    )}
-                  </View>
-
-                  <Text style={styles.modalTitle}>{analysisResult.title}</Text>
-
-                  <Image
-                    source={monumentImageSource(analysisResult.image_url)}
-                    style={styles.heroImage}
-                    resizeMode="cover"
-                  />
-
-                  {(showInviteBanner || isListening) && (
-                    <View style={styles.listenBanner}>
-                      <Animated.View style={{ opacity: micPulse }}>
-                        <Ionicons name="mic" size={22} color="#6ee7b7" />
-                      </Animated.View>
-                      <Text style={styles.listenText}>{t('scan.confirmBanner')}</Text>
-                      <View style={styles.listenActions}>
-                        <TouchableOpacity style={styles.yesBtn} onPress={confirmYes}>
-                          <Text style={styles.yesBtnText}>{t('scan.yes')}</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.noBtn} onPress={confirmNo}>
-                          <Text style={styles.noBtnText}>{t('scan.no')}</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  )}
-
-                  <Text style={styles.sectionHeading}>{t('scan.sectionOrigin')}</Text>
-                  <Text style={styles.bodyText}>{analysisResult.explanation}</Text>
-
-                  {!!analysisResult.history && (
-                    <>
-                      <Text style={styles.sectionHeading}>{t('scan.sectionHistory')}</Text>
-                      <Text style={styles.bodyText}>{analysisResult.history}</Text>
-                    </>
-                  )}
-
-                  {!!analysisResult.anecdotes && (
-                    <>
-                      <Text style={styles.sectionHeading}>{t('scan.sectionAnecdote')}</Text>
-                      <Text style={styles.bodyText}>{analysisResult.anecdotes}</Text>
-                    </>
-                  )}
-
-                  <MonumentAskBox
-                    apiUrl={API_URL}
-                    monumentId={analysisResult.id}
-                    language={userLanguage}
-                    onAnswerAudio={playAnswerAudio}
-                    onInputFocus={scrollAskIntoView}
-                  />
-                </ScrollView>
-
-                {/* Mini-player dans le flux (pas absolute) — visible avec le contenu */}
-                {!keyboardVisible && (
                   <View
                     style={[
-                      styles.miniPlayerDock,
-                      { backgroundColor: colors.miniPlayer },
+                      styles.sheetHandle,
+                      {
+                        backgroundColor: isDark
+                          ? 'rgba(255,255,255,0.5)'
+                          : 'rgba(15,23,42,0.32)',
+                      },
                     ]}
-                  >
-                    <TouchableOpacity
-                      style={styles.miniPlayBtn}
-                      onPress={playElevenLabsAudio}
-                      disabled={loadingAudio || isWaitingForPrefetch}
-                    >
-                      {loadingAudio || isWaitingForPrefetch ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                      ) : (
-                        <Ionicons name={isPlaying ? 'pause' : 'play'} size={22} color="#fff" />
-                      )}
-                    </TouchableOpacity>
+                  />
+                </View>
 
-                    <View style={styles.miniMeta}>
-                      <Text style={styles.miniTitle} numberOfLines={1}>
-                        {t('scan.miniPlayerTitle')}
+                {analysisResult && (
+                  <View style={styles.modalBody}>
+                    <ScrollView
+                      ref={modalScrollRef}
+                      style={styles.modalScroll}
+                      contentContainerStyle={styles.modalScrollContent}
+                      showsVerticalScrollIndicator={false}
+                      keyboardShouldPersistTaps="handled"
+                      keyboardDismissMode="interactive"
+                    >
+                      <View style={styles.badgeRow}>
+                        <Text
+                          style={[
+                            styles.categoryBadge,
+                            {
+                              color: isDark ? '#a7f3d0' : colors.primary,
+                              backgroundColor: isDark
+                                ? 'rgba(16, 185, 129, 0.28)'
+                                : 'rgba(5, 150, 105, 0.14)',
+                            },
+                          ]}
+                        >
+                          {(analysisResult.category || 'artifact').toUpperCase()}
+                        </Text>
+                        <View style={styles.locationBadge}>
+                          <Ionicons name="location" size={14} color={colors.primary} />
+                          <Text
+                            style={[
+                              styles.locationText,
+                              {
+                                color: colors.modalMuted,
+                                textShadowColor: 'transparent',
+                              },
+                            ]}
+                          >
+                            {analysisResult.region}
+                          </Text>
+                        </View>
+                        {score != null && (
+                          <Text style={[styles.scoreBadge, { color: colors.primary }]}>
+                            {Math.round(score * 100)}%
+                          </Text>
+                        )}
+                      </View>
+
+                      <Text
+                        style={[
+                          styles.modalTitle,
+                          {
+                            color: colors.modalText,
+                            textShadowColor: 'transparent',
+                          },
+                        ]}
+                      >
+                        {analysisResult.title}
                       </Text>
-                      <SoundWave active={!!isPlaying} />
-                      <View style={styles.progressTrack}>
+
+                      <Image
+                        source={monumentImageSource(analysisResult.image_url)}
+                        style={styles.heroImage}
+                        resizeMode="cover"
+                      />
+
+                      {(showInviteBanner || isListening) && (
                         <View
                           style={[
-                            styles.progressFill,
-                            { width: `${Math.round(audioProgress * 100)}%` },
+                            styles.listenBanner,
+                            {
+                              backgroundColor: isDark
+                                ? 'rgba(5, 150, 105, 0.18)'
+                                : 'rgba(5, 150, 105, 0.1)',
+                              borderColor: isDark
+                                ? 'rgba(110, 231, 183, 0.35)'
+                                : 'rgba(5, 150, 105, 0.22)',
+                            },
                           ]}
-                        />
-                      </View>
-                    </View>
+                        >
+                          <Animated.View style={{ opacity: micPulse }}>
+                            <Ionicons
+                              name="chatbubble-ellipses-outline"
+                              size={22}
+                              color={colors.primary}
+                            />
+                          </Animated.View>
+                          <Text style={[styles.listenText, { color: colors.modalText }]}>
+                            {t('scan.confirmBanner')}
+                          </Text>
+                          <View style={styles.listenActions}>
+                            <TouchableOpacity style={styles.yesBtn} onPress={confirmYes}>
+                              <Text style={styles.yesBtnText}>{t('scan.yes')}</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[
+                                styles.noBtn,
+                                {
+                                  backgroundColor: isDark
+                                    ? 'rgba(255,255,255,0.14)'
+                                    : 'rgba(15,23,42,0.06)',
+                                },
+                              ]}
+                              onPress={confirmNo}
+                            >
+                              <Text style={[styles.noBtnText, { color: colors.modalText }]}>
+                                {t('scan.no')}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      )}
 
-                    <TouchableOpacity style={styles.miniRescan} onPress={closeModal}>
-                      <Ionicons name="refresh" size={18} color="#6ee7b7" />
-                    </TouchableOpacity>
+                      <Text
+                        style={[
+                          styles.sectionHeading,
+                          { color: colors.primary, textShadowColor: 'transparent' },
+                        ]}
+                      >
+                        {t('scan.sectionOrigin')}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.bodyText,
+                          { color: colors.modalText, textShadowColor: 'transparent' },
+                        ]}
+                      >
+                        {analysisResult.explanation}
+                      </Text>
+
+                      {!!analysisResult.history && (
+                        <>
+                          <Text
+                            style={[
+                              styles.sectionHeading,
+                              { color: colors.primary, textShadowColor: 'transparent' },
+                            ]}
+                          >
+                            {t('scan.sectionHistory')}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.bodyText,
+                              { color: colors.modalText, textShadowColor: 'transparent' },
+                            ]}
+                          >
+                            {analysisResult.history}
+                          </Text>
+                        </>
+                      )}
+
+                      {!!analysisResult.anecdotes && (
+                        <>
+                          <Text
+                            style={[
+                              styles.sectionHeading,
+                              { color: colors.primary, textShadowColor: 'transparent' },
+                            ]}
+                          >
+                            {t('scan.sectionAnecdote')}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.bodyText,
+                              { color: colors.modalText, textShadowColor: 'transparent' },
+                            ]}
+                          >
+                            {analysisResult.anecdotes}
+                          </Text>
+                        </>
+                      )}
+
+                      <MonumentAskBox
+                        apiUrl={API_URL}
+                        monumentId={analysisResult.id}
+                        language={userLanguage}
+                        onAnswerAudio={playAnswerAudio}
+                        onInputFocus={scrollAskIntoView}
+                      />
+                    </ScrollView>
+
+                    {!keyboardVisible && (
+                      <View
+                        style={[
+                          styles.miniPlayerDock,
+                          {
+                            backgroundColor: isDark ? colors.bgElevated : '#ffffff',
+                            borderTopColor: isDark
+                              ? 'rgba(255,255,255,0.12)'
+                              : 'rgba(15,23,42,0.08)',
+                          },
+                        ]}
+                      >
+                        <TouchableOpacity
+                          style={styles.miniPlayBtn}
+                          onPress={playElevenLabsAudio}
+                          disabled={loadingAudio || isWaitingForPrefetch}
+                        >
+                          {loadingAudio || isWaitingForPrefetch ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                          ) : (
+                            <Ionicons
+                              name={isPlaying ? 'pause' : 'play'}
+                              size={22}
+                              color="#fff"
+                            />
+                          )}
+                        </TouchableOpacity>
+
+                        <View style={styles.miniMeta}>
+                          <Text
+                            style={[styles.miniTitle, { color: colors.modalText }]}
+                            numberOfLines={1}
+                          >
+                            {t('scan.miniPlayerTitle')}
+                          </Text>
+                          <SoundWave active={!!isPlaying} />
+                          <View
+                            style={[
+                              styles.progressTrack,
+                              {
+                                backgroundColor: isDark
+                                  ? 'rgba(255,255,255,0.2)'
+                                  : 'rgba(15,23,42,0.12)',
+                              },
+                            ]}
+                          >
+                            <View
+                              style={[
+                                styles.progressFill,
+                                { width: `${Math.round(audioProgress * 100)}%` },
+                              ]}
+                            />
+                          </View>
+                        </View>
+
+                        <TouchableOpacity style={styles.miniRescan} onPress={closeModal}>
+                          <Ionicons name="refresh" size={18} color={colors.primary} />
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
                 )}
               </View>
-            )}
-          </View>
-        </KeyboardAvoidingView>
+            </Animated.View>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
     </View>
   );
@@ -716,7 +1024,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#f8fafc',
   },
-  overlay: { flex: 1, justifyContent: 'flex-start', paddingTop: 56, paddingHorizontal: 16 },
+  overlay: { flex: 1, justifyContent: 'flex-start', paddingHorizontal: 16 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   statusBadge: {
     flexDirection: 'row',
@@ -819,18 +1127,44 @@ const styles = StyleSheet.create({
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
     justifyContent: 'flex-end',
+    backgroundColor: 'rgba(15, 23, 42, 0.42)',
+  },
+  modalBackdropFlex: {
+    flex: 1,
+  },
+  modalKav: {
+    width: '100%',
+    height: '88%',
+  },
+  modalSheetWrap: {
+    flex: 1,
+    width: '100%',
   },
   modalShell: {
-    height: '88%',
+    flex: 1,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     overflow: 'hidden',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.18)',
-    paddingTop: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0,
+    paddingTop: 4,
     paddingHorizontal: 18,
+  },
+  handleHit: {
+    alignSelf: 'stretch',
+    minHeight: 44,
+    paddingVertical: 14,
+    marginBottom: 4,
+    justifyContent: 'center',
+    zIndex: 20,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 88,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.35)',
   },
   modalBody: {
     flex: 1,
@@ -841,13 +1175,6 @@ const styles = StyleSheet.create({
   modalScrollContent: {
     paddingBottom: 20,
   },
-  closeBtn: {
-    alignSelf: 'flex-end',
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    padding: 8,
-    borderRadius: 20,
-    marginBottom: 8,
-  },
   miniPlayerDock: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -856,7 +1183,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     gap: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.12)',
+    overflow: 'hidden',
   },
   miniPlayBtn: {
     width: 48,
@@ -932,8 +1259,6 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(110, 231, 183, 0.35)',
-    backgroundColor: 'rgba(5, 150, 105, 0.18)',
     alignItems: 'center',
   },
   listenText: {
