@@ -31,17 +31,39 @@ export function formatDistance(distanceKm) {
 }
 
 /**
- * Demande permission et renvoie la position actuelle.
- * @returns {{ latitude, longitude, accuracy, heading } | null}
+ * Demande permission et renvoie une position rapidement.
+ * Prefere lastKnown, sinon GPS Balanced (évite Accuracy.High trop lent).
+ * @returns {{ latitude, longitude, accuracy, heading, fromCache?: boolean } | null}
  */
-export async function getCurrentPosition() {
+export async function getCurrentPosition(options = {}) {
   const { status } = await Location.requestForegroundPermissionsAsync();
   if (status !== 'granted') {
     return null;
   }
 
+  const preferLastKnown = options.preferLastKnown !== false;
+  if (preferLastKnown) {
+    try {
+      const last = await Location.getLastKnownPositionAsync({
+        maxAge: options.maxAgeMs ?? 120000,
+        requiredAccuracy: options.requiredAccuracy ?? 500,
+      });
+      if (last?.coords) {
+        return {
+          latitude: last.coords.latitude,
+          longitude: last.coords.longitude,
+          accuracy: last.coords.accuracy,
+          heading: last.coords.heading,
+          fromCache: true,
+        };
+      }
+    } catch (e) {
+      console.warn('getLastKnownPositionAsync:', e?.message || e);
+    }
+  }
+
   const pos = await Location.getCurrentPositionAsync({
-    accuracy: Location.Accuracy.High,
+    accuracy: options.accuracy ?? Location.Accuracy.Balanced,
   });
 
   return {
@@ -49,7 +71,29 @@ export async function getCurrentPosition() {
     longitude: pos.coords.longitude,
     accuracy: pos.coords.accuracy,
     heading: pos.coords.heading,
+    fromCache: false,
   };
+}
+
+/** Affinage GPS en arrière-plan (Balanced / High selon options). */
+export async function getFreshPosition(options = {}) {
+  const { status } = await Location.getForegroundPermissionsAsync();
+  if (status !== 'granted') return null;
+  try {
+    const pos = await Location.getCurrentPositionAsync({
+      accuracy: options.accuracy ?? Location.Accuracy.Balanced,
+    });
+    return {
+      latitude: pos.coords.latitude,
+      longitude: pos.coords.longitude,
+      accuracy: pos.coords.accuracy,
+      heading: pos.coords.heading,
+      fromCache: false,
+    };
+  } catch (e) {
+    console.warn('getFreshPosition:', e?.message || e);
+    return null;
+  }
 }
 
 /**
@@ -64,9 +108,9 @@ export async function watchPosition(onUpdate, options = {}) {
 
   return Location.watchPositionAsync(
     {
-      accuracy: Location.Accuracy.High,
-      timeInterval: options.timeInterval ?? 2000,
-      distanceInterval: options.distanceInterval ?? 5,
+      accuracy: options.accuracy ?? Location.Accuracy.Balanced,
+      timeInterval: options.timeInterval ?? 4000,
+      distanceInterval: options.distanceInterval ?? 15,
     },
     (pos) => {
       onUpdate({

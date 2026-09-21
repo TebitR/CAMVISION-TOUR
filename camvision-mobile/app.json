@@ -2,6 +2,7 @@
   "expo": {
     "name": "CAMVISION TOUR",
     "slug": "camvision-mobile",
+    "scheme": "camvisionmobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/splash-accueil.png",
@@ -27,7 +28,8 @@
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
         "FOREGROUND_SERVICE"
-      ]
+      ],
+      "package": "com.tebit.camvisionmobile"
     },
     "web": {
       "favicon": "./assets/splash-accueil.png"

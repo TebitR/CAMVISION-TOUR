@@ -20,6 +20,9 @@ from services.rag_service import (
 from migrate_enrich import ensure_enriched_columns
 import asyncio
 
+from routers import search as search_router
+from routers import itinerary as itinerary_router
+
 Base.metadata.create_all(bind=engine)
 try:
     ensure_enriched_columns()
@@ -31,6 +34,9 @@ app = FastAPI(
     version="2.0.0",
     description="Backend Orchestrateur - Vision, GPS, Multilingue & ElevenLabs"
 )
+
+app.include_router(search_router.router)
+app.include_router(itinerary_router.router)
 
 # Images patrimoniaxes (sample_images/...) accessibles depuis le mobile
 _sample_dir = os.path.join(os.path.dirname(__file__), "sample_images")
@@ -128,6 +134,8 @@ async def get_nearby_monuments(
     lng: float = Query(..., description="Longitude GPS du touriste"),
     radius: float = Query(300.0, description="Rayon en km (défaut 300 pour couverture régionale)"),
     lang: str = Query("fr", description="Langue des métadonnées"),
+    limit: int = Query(30, ge=1, le=100, description="Nombre max de résultats (plus proches)"),
+    light: bool = Query(True, description="Payload carte allégé (sans history longue)"),
     db: Session = Depends(get_db),
 ):
     lang_key = (lang or "fr").lower().replace("_", "-").split("-")[0]
@@ -144,7 +152,10 @@ async def get_nearby_monuments(
         dist = haversine(lat, lng, obj.latitude, obj.longitude)
         if dist > radius:
             continue
-        nearby.append({
+        explanation = obj.localized(obj.description, lang_key, "") or ""
+        if light and len(explanation) > 220:
+            explanation = explanation[:217].rstrip() + "…"
+        item = {
             "id": obj.id,
             "code": obj.code,
             "title": obj.localized(obj.name, lang_key, "Monument"),
@@ -156,11 +167,18 @@ async def get_nearby_monuments(
             "distance_km": round(dist, 3),
             "distance_m": round(dist * 1000),
             "image_url": obj.image_url,
-            "explanation": obj.localized(obj.description, lang_key, ""),
-            "history": obj.localized(obj.history, lang_key, ""),
-        })
+            "explanation": explanation,
+        }
+        if not light:
+            item["history"] = obj.localized(obj.history, lang_key, "")
+        else:
+            # Extrait court pour TTS / fiche — évite de renvoyer tout l'historique
+            hist = obj.localized(obj.history, lang_key, "") or ""
+            item["history"] = (hist[:280] + "…") if len(hist) > 280 else hist
+        nearby.append(item)
 
     nearby.sort(key=lambda x: x["distance_km"])
+    nearby = nearby[:limit]
     return {
         "count": len(nearby),
         "lat": lat,

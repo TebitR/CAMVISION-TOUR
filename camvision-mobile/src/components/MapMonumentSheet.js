@@ -66,8 +66,10 @@ export default function MapMonumentSheet({
   language = 'fr',
   bottomInset = 0,
   navLoading = false,
+  autoStartAudio = false,
   onClose,
   onDirections,
+  onAutoAudioConsumed,
 }) {
   const { t } = useTranslation();
   const slide = useRef(new Animated.Value(320)).current;
@@ -150,6 +152,17 @@ export default function MapMonumentSheet({
       tension: 65,
     }).start();
   }, [monument?.id, resetForMonument, slide]);
+
+  // Geofence / deep-link : démarrer l'audio sans ouvrir Scan
+  useEffect(() => {
+    if (!monument || !autoStartAudio) return;
+    const t = setTimeout(() => {
+      startAudioPanel();
+      onAutoAudioConsumed?.();
+    }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monument?.id, autoStartAudio]);
 
   useEffect(() => {
     const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -303,7 +316,7 @@ export default function MapMonumentSheet({
     onClose?.();
   };
 
-  const dockBottom = 118 + Math.min(bottomInset, 14);
+  const dockBottom = 78 + Math.min(bottomInset, 14);
   const sheetBottom =
     keyboardHeight > 0 ? Math.max(keyboardHeight + 8, 12) : dockBottom;
   const keyboardOpen = keyboardHeight > 0;

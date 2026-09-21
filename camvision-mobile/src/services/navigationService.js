@@ -2,22 +2,26 @@ import axios from 'axios';
 import { getMapboxToken } from '../config';
 
 /**
- * Itinéraire piéton Mapbox Directions.
- * @returns {{ coordinates, distanceM, durationS, steps, raw } | null}
+ * Itinéraire piéton Mapbox Directions (1 ou N waypoints).
+ * @param {{latitude:number,longitude:number}[]} points — au moins 2 points (départ + étapes)
  */
-export async function fetchMapboxRoute(userCoords, monumentCoords) {
+export async function fetchMapboxWalkingMulti(points) {
   const token = getMapboxToken();
   if (!token || token.startsWith('votre_')) {
     throw new Error('MAPBOX_TOKEN_MISSING');
   }
+  if (!points || points.length < 2) {
+    throw new Error('MAPBOX_NEED_POINTS');
+  }
 
-  const from = `${userCoords.longitude},${userCoords.latitude}`;
-  const to = `${monumentCoords.longitude},${monumentCoords.latitude}`;
+  const path = points
+    .map((p) => `${p.longitude},${p.latitude}`)
+    .join(';');
   const url =
-    `https://api.mapbox.com/directions/v5/mapbox/walking/${from};${to}` +
+    `https://api.mapbox.com/directions/v5/mapbox/walking/${path}` +
     `?geometries=geojson&steps=true&overview=full&language=fr&access_token=${token}`;
 
-  const { data } = await axios.get(url, { timeout: 20000 });
+  const { data } = await axios.get(url, { timeout: 25000 });
   const route = data?.routes?.[0];
   if (!route?.geometry?.coordinates?.length) {
     throw new Error('MAPBOX_NO_ROUTE');
@@ -28,13 +32,18 @@ export async function fetchMapboxRoute(userCoords, monumentCoords) {
     longitude: lng,
   }));
 
-  const steps = (route.legs?.[0]?.steps || []).map((s) => ({
-    instruction: s.maneuver?.instruction || s.name || '',
-    distance: s.distance || 0,
-    duration: s.duration || 0,
-    type: s.maneuver?.type,
-    modifier: s.maneuver?.modifier,
-  }));
+  const steps = [];
+  (route.legs || []).forEach((leg) => {
+    (leg.steps || []).forEach((s) => {
+      steps.push({
+        instruction: s.maneuver?.instruction || s.name || '',
+        distance: s.distance || 0,
+        duration: s.duration || 0,
+        type: s.maneuver?.type,
+        modifier: s.maneuver?.modifier,
+      });
+    });
+  });
 
   return {
     coordinates,
@@ -43,6 +52,13 @@ export async function fetchMapboxRoute(userCoords, monumentCoords) {
     steps,
     raw: route,
   };
+}
+
+/**
+ * Itinéraire piéton Mapbox Directions (A → B).
+ */
+export async function fetchMapboxRoute(userCoords, monumentCoords) {
+  return fetchMapboxWalkingMulti([userCoords, monumentCoords]);
 }
 
 export function formatWalkDuration(seconds) {

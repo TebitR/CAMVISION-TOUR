@@ -20,6 +20,7 @@ import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import {
   addNotificationResponseListener,
   ensureNotificationPermissions,
+  registerForPushNotificationsAsync,
 } from './src/services/notificationService';
 
 const Tab = createBottomTabNavigator();
@@ -65,6 +66,8 @@ function AppRoot() {
   useEffect(() => {
     if (phase !== 'main') return undefined;
     ensureNotificationPermissions().catch(() => {});
+    // Push distant uniquement hors Expo Go (évite le crash Android SDK 53+)
+    registerForPushNotificationsAsync().catch(() => {});
     const sub = addNotificationResponseListener((response) => {
       const data = response?.notification?.request?.content?.data;
       if (data?.screen === 'Scan' || data?.type === 'geofence') {
