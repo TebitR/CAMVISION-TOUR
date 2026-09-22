@@ -128,6 +128,65 @@ async def get_nearby_sites(
     return {"count": len(nearby), "sites": nearby}
 
 
+@app.get("/api/monuments", summary="Catalogue des monuments patrimoniaux")
+async def list_monuments(
+    lang: str = Query("fr", description="Langue des métadonnées"),
+    q: str = Query("", description="Recherche nom / ville / région"),
+    limit: int = Query(60, ge=1, le=200),
+    light: bool = Query(True, description="Payload allégé"),
+    db: Session = Depends(get_db),
+):
+    """Liste catalogue (sans GPS) pour l'onglet Explorer / Accueil."""
+    lang_key = (lang or "fr").lower().replace("_", "-").split("-")[0]
+    if lang_key not in ("fr", "en", "es", "de", "zh", "ar"):
+        lang_key = "fr"
+
+    query = (q or "").strip().lower()
+    objects = db.query(TouristObject).all()
+    results = []
+    for obj in objects:
+        title = obj.localized(obj.name, lang_key, "Monument")
+        city = obj.city_name or ""
+        region = obj.region or ""
+        if query:
+            blob = f"{title} {city} {region} {obj.code or ''} {obj.category or ''}".lower()
+            if query not in blob:
+                # match also other language names lightly
+                if isinstance(obj.name, dict):
+                    if not any(query in str(v).lower() for v in obj.name.values()):
+                        continue
+                else:
+                    continue
+        explanation = obj.localized(obj.description, lang_key, "") or ""
+        if light and len(explanation) > 220:
+            explanation = explanation[:217].rstrip() + "…"
+        hist = obj.localized(obj.history, lang_key, "") or ""
+        if light and len(hist) > 280:
+            hist = hist[:277].rstrip() + "…"
+        results.append(
+            {
+                "id": obj.id,
+                "code": obj.code,
+                "title": title,
+                "category": obj.category or "artifact",
+                "region": region or None,
+                "city": city or None,
+                "latitude": obj.latitude,
+                "longitude": obj.longitude,
+                "image_url": obj.image_url,
+                "explanation": explanation,
+                "history": hist,
+                "audio_available": bool(obj.audio_story_url)
+                or bool(explanation)
+                or bool(hist),
+            }
+        )
+
+    results.sort(key=lambda x: (x["title"] or "").lower())
+    results = results[:limit]
+    return {"count": len(results), "monuments": results}
+
+
 @app.get("/api/monuments/nearby", summary="Monuments / objets patrimoniaux à proximité")
 async def get_nearby_monuments(
     lat: float = Query(..., description="Latitude GPS du touriste"),

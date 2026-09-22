@@ -1,4 +1,4 @@
-import { storageGet, storageSet } from '../utils/safeStorage';
+import { storageGet, storageSet, storageRemove } from '../utils/safeStorage';
 
 const CACHE_KEY = '@camvision/nearby_monuments_v1';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 min
@@ -44,5 +44,13 @@ export async function saveNearbyCache(monuments, lat, lng, lang = 'fr') {
     );
   } catch (e) {
     console.warn('saveNearbyCache:', e?.message || e);
+  }
+}
+
+export async function clearNearbyCache() {
+  try {
+    await storageRemove(CACHE_KEY);
+  } catch (e) {
+    console.warn('clearNearbyCache:', e?.message || e);
   }
 }

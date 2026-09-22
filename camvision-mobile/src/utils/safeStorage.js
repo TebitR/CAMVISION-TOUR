@@ -25,3 +25,14 @@ export async function storageSet(key, value) {
     return false;
   }
 }
+
+export async function storageRemove(key) {
+  memory.delete(key);
+  try {
+    await AsyncStorage.removeItem(key);
+    return true;
+  } catch (e) {
+    console.warn('AsyncStorage removeItem:', e?.message || e);
+    return false;
+  }
+}

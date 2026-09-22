@@ -5,7 +5,7 @@ import { NavigationContainer, DefaultTheme, DarkTheme, createNavigationContainer
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { storageGet } from './src/utils/safeStorage';
+import { storageGet, storageRemove } from './src/utils/safeStorage';
 
 import './src/i18n';
 import i18n, { resolveAppLanguage } from './src/i18n';
@@ -26,6 +26,9 @@ import {
   ensureNotificationPermissions,
   registerForPushNotificationsAsync,
 } from './src/services/notificationService';
+
+/** Vidéo démo : forcer branding → langues à chaque lancement. Remettre à false après. */
+const FORCE_DEMO_ONBOARDING = false;
 
 const Tab = createBottomTabNavigator();
 const navigationRef = createNavigationContainerRef();
@@ -56,6 +59,12 @@ function AppRoot() {
   useEffect(() => {
     (async () => {
       try {
+        if (FORCE_DEMO_ONBOARDING) {
+          await storageRemove(ONBOARDING_DONE_KEY);
+          await storageRemove(LANG_STORAGE_KEY);
+          setPhase('branding');
+          return;
+        }
         const savedLang = await storageGet(LANG_STORAGE_KEY);
         if (savedLang) {
           await i18n.changeLanguage(resolveAppLanguage(savedLang));
