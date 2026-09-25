@@ -142,7 +142,16 @@
     "cancel": "取消",
     "about": "关于",
     "aboutBody": "CAMVISION TOUR — 以视觉、地图与音频探索喀麦隆遗产的智能文化导游。",
-    "version": "版本 {{version}}"
+    "version": "版本 {{version}}",
+    "account": "账户",
+    "guest": "访客",
+    "guestHint": "登录后可同步收藏。",
+    "login": "登录",
+    "logout": "退出",
+    "email": "邮箱",
+    "password": "密码",
+    "loginSubmit": "登录",
+    "loginError": "邮箱或密码不正确。"
   },
   "scan": {
     "cameraPermission": "需要相机权限。",
@@ -158,6 +167,7 @@
     "errorServer": "无法连接分析服务器。",
     "errorAudio": "音频错误",
     "errorAudioMsg": "无法播放 ElevenLabs 语音导览。",
+    "errorAudioQuota": "语音导览不可用：ElevenLabs 额度不足或需付费音色。扫描与文本仍可用。",
     "guideTitle": "ElevenLabs 语音导览",
     "guideWaiting": "等待确认",
     "guideReady": "高保真聆听 · {{lang}}",

@@ -55,8 +55,13 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_HOST=db
-      - QDRANT_HOST=${QDRANT_HOST}
-      - QDRANT_PORT=${QDRANT_PORT}
+      - QDRANT_HOST=vector-db
+      - QDRANT_PORT=6333
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-camvision-dev-secret-change-me-in-production}
+      - JWT_EXPIRE_MINUTES=${JWT_EXPIRE_MINUTES:-60}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@camvision.cm}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-motdepasseadmin}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
     volumes:
       - ./backend:/app
       - openclip_cache:/root/.cache

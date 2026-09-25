@@ -1,14 +1,16 @@
 import os
 import math
+import threading
 from fastapi import FastAPI, Depends, File, UploadFile, HTTPException, Query, Form
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance
-from database import engine, Base, get_db
-from models import Site, User, TouristObject
+from database import engine, Base, get_db, SessionLocal
+from models import Site, User, TouristObject, Category
 from vision import get_vision_engine
 from services.tts_service import generate_speech_elevenlabs, DEFAULT_VOICE_ID
 from services.rag_service import (
@@ -22,6 +24,9 @@ import asyncio
 
 from routers import search as search_router
 from routers import itinerary as itinerary_router
+from routers import auth as auth_router
+from routers import admin_categories as admin_categories_router
+from routers import admin_monuments as admin_monuments_router
 
 Base.metadata.create_all(bind=engine)
 try:
@@ -35,8 +40,75 @@ app = FastAPI(
     description="Backend Orchestrateur - Vision, GPS, Multilingue & ElevenLabs"
 )
 
+_cors_origins = [
+    o.strip()
+    for o in os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000",
+    ).split(",")
+    if o.strip()
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(search_router.router)
 app.include_router(itinerary_router.router)
+app.include_router(auth_router.router)
+app.include_router(admin_categories_router.router)
+app.include_router(admin_monuments_router.router)
+
+
+def seed_default_categories():
+    """Crée les catégories de base + sync depuis les slugs déjà présents sur les objets."""
+    defaults = [
+        ("Monument", "monument", "Sites et monuments patrimoniaux"),
+        ("Musée", "musee", "Musées et collections"),
+        ("Masque", "masque", "Masques traditionnels"),
+        ("Sculpture", "sculpture", "Sculptures et arts"),
+        ("Nature", "nature", "Sites naturels"),
+        ("Hôtel", "hotel", "Hébergements"),
+        ("Artefact", "artifact", "Objets / artefacts"),
+    ]
+    db = SessionLocal()
+    try:
+        existing = {c.slug for c in db.query(Category).all()}
+        for name, slug, desc in defaults:
+            if slug not in existing:
+                db.add(Category(name=name, slug=slug, description=desc))
+                existing.add(slug)
+        # Sync des catégories déjà utilisées sur TouristObject
+        used = {
+            (row[0] or "").strip().lower()
+            for row in db.query(TouristObject.category).distinct().all()
+            if row[0]
+        }
+        for slug in used:
+            if slug and slug not in existing:
+                db.add(
+                    Category(
+                        name=slug.replace("-", " ").title(),
+                        slug=slug,
+                        description=None,
+                    )
+                )
+                existing.add(slug)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Seed catégories: {e}")
+    finally:
+        db.close()
+
+
+try:
+    seed_default_categories()
+except Exception as e:
+    print(f"Seed catégories (boot): {e}")
 
 # Images patrimoniaxes (sample_images/...) accessibles depuis le mobile
 _sample_dir = os.path.join(os.path.dirname(__file__), "sample_images")
@@ -46,11 +118,31 @@ if os.path.isdir(_sample_dir):
 QDRANT_HOST = os.getenv("QDRANT_HOST", "vector-db")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT", 6333))
 COLLECTION_NAME = "camvision_artifacts"
-CONFIDENCE_THRESHOLD = 0.60
+CONFIDENCE_THRESHOLD = 0.55
 
 
 def get_qdrant_client() -> QdrantClient:
     return QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+
+
+def _hit_object_id(hit) -> int | None:
+    """object_id payload, sinon déduit de l'id du point (galerie idx > 0)."""
+    payload = hit.payload or {}
+    raw = payload.get("object_id")
+    if raw is not None:
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            pass
+    try:
+        hid = int(hit.id)
+    except (TypeError, ValueError):
+        return None
+    if hid < 1000:
+        return hid
+    if hid >= 10000:
+        return hid // 10000
+    return hid // 1000
 
 
 def haversine(lat1, lon1, lat2, lon2):
@@ -80,6 +172,16 @@ def startup_event():
         get_vision_engine().warmup()
     except Exception as e:
         print(f"Erreur warmup OpenCLIP au démarrage : {e}")
+
+    def _index_pending():
+        try:
+            from services.vision_index import ensure_indexed
+
+            ensure_indexed()
+        except Exception as e:
+            print(f"Index vision (startup): {e}")
+
+    threading.Thread(target=_index_pending, daemon=True).start()
 
 
 @app.get("/")
@@ -128,6 +230,26 @@ async def get_nearby_sites(
     return {"count": len(nearby), "sites": nearby}
 
 
+def _gallery_urls(obj) -> list[str]:
+    urls: list[str] = []
+    raw = getattr(obj, "image_urls", None)
+    if isinstance(raw, list):
+        for item in raw:
+            if isinstance(item, str) and item.strip():
+                urls.append(item.strip())
+            elif isinstance(item, dict) and item.get("url"):
+                urls.append(str(item["url"]).strip())
+    cover = getattr(obj, "image_url", None)
+    if cover and cover not in urls:
+        urls.insert(0, cover)
+    return urls
+
+
+def _cover_image(obj) -> str | None:
+    urls = _gallery_urls(obj)
+    return urls[0] if urls else None
+
+
 @app.get("/api/monuments", summary="Catalogue des monuments patrimoniaux")
 async def list_monuments(
     lang: str = Query("fr", description="Langue des métadonnées"),
@@ -163,6 +285,7 @@ async def list_monuments(
         hist = obj.localized(obj.history, lang_key, "") or ""
         if light and len(hist) > 280:
             hist = hist[:277].rstrip() + "…"
+        gallery = _gallery_urls(obj)
         results.append(
             {
                 "id": obj.id,
@@ -173,7 +296,8 @@ async def list_monuments(
                 "city": city or None,
                 "latitude": obj.latitude,
                 "longitude": obj.longitude,
-                "image_url": obj.image_url,
+                "image_url": gallery[0] if gallery else None,
+                "image_urls": gallery,
                 "explanation": explanation,
                 "history": hist,
                 "audio_available": bool(obj.audio_story_url)
@@ -225,7 +349,8 @@ async def get_nearby_monuments(
             "longitude": obj.longitude,
             "distance_km": round(dist, 3),
             "distance_m": round(dist * 1000),
-            "image_url": obj.image_url,
+            "image_url": _cover_image(obj),
+            "image_urls": _gallery_urls(obj),
             "explanation": explanation,
         }
         if not light:
@@ -279,15 +404,15 @@ async def search_similar_objects(
         )
         results = []
         for hit in search_result:
-            obj_id = hit.payload.get("object_id") or hit.id
-            obj = db.query(TouristObject).filter(TouristObject.id == obj_id).first()
+            obj_id = _hit_object_id(hit)
+            obj = db.query(TouristObject).filter(TouristObject.id == obj_id).first() if obj_id else None
             if obj:
                 results.append({
                     "object_id": obj.id,
                     "name": obj.name,
                     "description": obj.description,
                     "category": obj.category,
-                    "image_url": obj.image_url,
+                    "image_url": _cover_image(obj),
                     "score": round(hit.score, 4)
                 })
             else:
@@ -339,8 +464,12 @@ async def analyze_and_explain(
         for hit in hits:
             if hit.score < CONFIDENCE_THRESHOLD:
                 continue
-            obj_id = hit.payload.get("object_id") or hit.id
-            candidate = db.query(TouristObject).filter(TouristObject.id == obj_id).first()
+            obj_id = _hit_object_id(hit)
+            candidate = (
+                db.query(TouristObject).filter(TouristObject.id == obj_id).first()
+                if obj_id
+                else None
+            )
             if candidate:
                 top = hit
                 obj = candidate
@@ -376,7 +505,8 @@ async def analyze_and_explain(
                 "category": obj.category or "artifact",
                 "region": obj.region or "Cameroun",
                 "city": obj.city_name,
-                "image_url": obj.image_url,
+                "image_url": _cover_image(obj),
+                "image_urls": _gallery_urls(obj),
                 "voice_id": DEFAULT_VOICE_ID,
                 "coordinates": {
                     "latitude": obj.latitude,

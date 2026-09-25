@@ -142,7 +142,16 @@
     "cancel": "Abbrechen",
     "about": "Über",
     "aboutBody": "CAMVISION TOUR — intelligenter Kulturführer für das kamerunische Erbe.",
-    "version": "Version {{version}}"
+    "version": "Version {{version}}",
+    "account": "Konto",
+    "guest": "Gast",
+    "guestHint": "Melden Sie sich an, um Favoriten zu synchronisieren.",
+    "login": "Anmelden",
+    "logout": "Abmelden",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "loginSubmit": "Login",
+    "loginError": "E-Mail oder Passwort ungültig."
   },
   "scan": {
     "cameraPermission": "Kamerazugriff erforderlich.",
@@ -158,6 +167,7 @@
     "errorServer": "Analyseserver nicht erreichbar.",
     "errorAudio": "Audiofehler",
     "errorAudioMsg": "ElevenLabs-Sprachführung kann nicht abgespielt werden.",
+    "errorAudioQuota": "Sprachführung nicht verfügbar: ElevenLabs-Kontingent erschöpft oder kostenpflichtige Stimme. Scan und Text funktionieren weiter.",
     "guideTitle": "ElevenLabs-Sprachführung",
     "guideWaiting": "Warte auf Bestätigung",
     "guideReady": "High-Fidelity-Wiedergabe · {{lang}}",

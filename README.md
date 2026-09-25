@@ -36,22 +36,15 @@ CAMVISION_TOUR/
 ├── docker-compose.yml      # db + vector-db + backend
 ├── .env                    # variables Docker (non versionné)
 ├── .env.example
-├── backend/                # FastAPI, vision, TTS, RAG, seed
-│   ├── Dockerfile          # Python 3.11
-│   ├── requirements.txt
-│   ├── .env / .env.example
-│   ├── main.py
-│   ├── seed_objects.py
-│   └── index_vectors.py
+├── backend/                # FastAPI, vision, TTS, RAG, seed, admin JWT/CRUD
+├── camvision-admin/        # Back-office Next.js (shadcn/ui + Tailwind)
 └── camvision-mobile/       # Expo 57
-    ├── package.json
-    ├── App.js
-    └── src/
 ```
 
 Ports par défaut :
 - API FastAPI : `http://localhost:8000`
 - Docs Swagger : `http://localhost:8000/docs`
+- Admin web : `http://localhost:3000/admin`
 - PostgreSQL : `5432`
 - Qdrant : `6333` (API), `6334`
 
@@ -235,6 +228,20 @@ docker compose down -v
 | POST | `/api/vision/analyze` | Scan image → fiche localisée |
 | POST | `/api/tts/generate` | Synthèse vocale ElevenLabs |
 | POST | `/api/rag/ask` | Q&A RAG sur un monument |
+| POST | `/api/v1/auth/login` | Login admin JWT (form OAuth2) |
+| GET/POST | `/api/v1/admin/categories` | CRUD catégories (Bearer) |
+| GET/POST/PUT/DELETE | `/api/v1/admin/monuments` | CRUD monuments (Bearer) |
+
+### Back-office web (`camvision-admin`)
+
+```bash
+cd camvision-admin
+npm install
+npm run dev
+```
+
+→ [http://localhost:3000/admin/login](http://localhost:3000/admin/login)  
+Identifiants : `ADMIN_EMAIL` / `ADMIN_PASSWORD` (défaut `admin@camvision.cm` / `motdepasseadmin`).
 
 Exemple RAG :
 

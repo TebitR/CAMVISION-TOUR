@@ -85,6 +85,7 @@ class TouristObject(Base):
     anecdotes = Column(JSON)
     category = Column(String(100), default="artifact", index=True)
     image_url = Column(String(500), nullable=True)
+    image_urls = Column(JSON, default=list)  # galerie [{url} ou strings]
     audio_story_url = Column(String(500), nullable=True)
 
     region = Column(String(100), nullable=True)
@@ -108,6 +109,18 @@ class TouristObject(Base):
         if not isinstance(field, dict):
             return field or fallback
         return field.get(lang) or field.get("fr") or field.get("en") or fallback
+
+class Category(Base):
+    """Catégories dynamiques pour le back-office (slug stocké sur TouristObject.category)."""
+
+    __tablename__ = "categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False)
+    slug = Column(String(100), unique=True, nullable=False, index=True)
+    description = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 
 class ScanHistory(Base):
     __tablename__ = "scan_history"

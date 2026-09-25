@@ -93,11 +93,22 @@ export default function ExploreScreen() {
         accessibilityRole="button"
         accessibilityLabel={item.title}
       >
-        <Image
-          source={monumentImageSource(item.image_url)}
-          style={styles.thumb}
-          resizeMode="cover"
-        />
+        {item.image_url ? (
+          <Image
+            source={monumentImageSource(item.image_url)}
+            style={styles.thumb}
+            resizeMode="cover"
+          />
+        ) : (
+          <View
+            style={[
+              styles.thumb,
+              { backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+            ]}
+          >
+            <Ionicons name="image-outline" size={22} color={colors.textMuted} />
+          </View>
+        )}
         <View style={styles.cardBody}>
           <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
             {item.title}

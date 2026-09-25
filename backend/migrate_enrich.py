@@ -13,6 +13,7 @@ def ensure_enriched_columns():
         "ALTER TABLE objects ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION",
         "ALTER TABLE objects ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION",
         "ALTER TABLE objects ADD COLUMN IF NOT EXISTS voice_id VARCHAR(100)",
+        "ALTER TABLE objects ADD COLUMN IF NOT EXISTS image_urls JSON",
     ]
     with engine.begin() as conn:
         for stmt in statements:

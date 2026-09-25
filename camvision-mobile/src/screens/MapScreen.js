@@ -1297,11 +1297,22 @@ export default function MapScreen() {
                       <View style={styles.stepBadge}>
                         <Text style={styles.stepBadgeText}>{w.order}</Text>
                       </View>
-                      <Image
-                        source={monumentImageSource(m.image_url)}
-                        style={styles.cardImage}
-                        resizeMode="cover"
-                      />
+                      {m.image_url ? (
+                        <Image
+                          source={monumentImageSource(m.image_url)}
+                          style={styles.cardImage}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View
+                          style={[
+                            styles.cardImage,
+                            { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.border },
+                          ]}
+                        >
+                          <Ionicons name="image-outline" size={22} color={colors.textMuted} />
+                        </View>
+                      )}
                       <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
                         {w.title}
                       </Text>
@@ -1346,11 +1357,22 @@ export default function MapScreen() {
                           activeOpacity={0.9}
                           accessibilityRole="button"
                         >
-                          <Image
-                            source={monumentImageSource(m.image_url)}
-                            style={styles.cardImage}
-                            resizeMode="cover"
-                          />
+                          {m.image_url ? (
+                            <Image
+                              source={monumentImageSource(m.image_url)}
+                              style={styles.cardImage}
+                              resizeMode="cover"
+                            />
+                          ) : (
+                            <View
+                              style={[
+                                styles.cardImage,
+                                { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.border },
+                              ]}
+                            >
+                              <Ionicons name="image-outline" size={22} color={colors.textMuted} />
+                            </View>
+                          )}
                           <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
                             {m.title}
                           </Text>

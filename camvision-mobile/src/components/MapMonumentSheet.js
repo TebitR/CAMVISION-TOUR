@@ -380,13 +380,34 @@ export default function MapMonumentSheet({
       </View>
 
       <View style={styles.header}>
-        {!compactHeader && (
-          <Image
-            source={monumentImageSource(monument.image_url)}
-            style={styles.thumb}
-            resizeMode="cover"
-          />
-        )}
+        {!compactHeader &&
+          (monument.image_url || (monument.image_urls && monument.image_urls.length) ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ maxWidth: 168 }}
+              contentContainerStyle={{ gap: 6 }}
+            >
+              {(
+                monument.image_urls?.length
+                  ? monument.image_urls
+                  : [monument.image_url]
+              )
+                .filter(Boolean)
+                .map((uri) => (
+                  <Image
+                    key={uri}
+                    source={monumentImageSource(uri)}
+                    style={styles.thumb}
+                    resizeMode="cover"
+                  />
+                ))}
+            </ScrollView>
+          ) : (
+            <View style={[styles.thumb, { alignItems: 'center', justifyContent: 'center' }]}>
+              <Ionicons name="image-outline" size={22} color={colors.textMuted} />
+            </View>
+          ))}
         <View style={{ flex: 1 }}>
           <Text style={[styles.title, { color: colors.text }]} numberOfLines={compactHeader ? 1 : 2}>
             {monument.title}

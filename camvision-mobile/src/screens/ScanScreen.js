@@ -41,7 +41,7 @@ import { monumentImageSource } from '../utils/imageUtils';
 import { getApiUrl } from '../config';
 
 const API_URL = getApiUrl();
-const CONFIDENCE_THRESHOLD = 0.6;
+const CONFIDENCE_THRESHOLD = 0.55;
 
 /** Invites vocales embarquées (0 ms — aucun réseau). */
 const LOCAL_PROMPT_ASSETS = {
@@ -129,6 +129,7 @@ export default function ScanScreen() {
   const mainAudioUriRef = useRef(null);
   const waitingForPrefetchRef = useRef(false);
   const prefetchGenRef = useRef(0);
+  const ttsUnavailableRef = useRef(null);
   const scanPulse = useRef(new Animated.Value(0.4)).current;
   const micPulse = useRef(new Animated.Value(0.35)).current;
 
@@ -290,12 +291,19 @@ export default function ScanScreen() {
         await playGuideFromUri(playUri);
       }
     } catch (error) {
-      console.error('Prefetch guide vocal :', error?.response?.status || error.message);
+      const status = error?.response?.status;
+      ttsUnavailableRef.current = status === 402 ? 'quota' : 'error';
+      if (status !== 402) {
+        console.warn('Prefetch guide vocal :', status || error.message);
+      }
       if (waitingForPrefetchRef.current && gen === prefetchGenRef.current) {
         waitingForPrefetchRef.current = false;
         setIsWaitingForPrefetch(false);
         setLoadingAudio(false);
-        Alert.alert(t('scan.errorAudio'), t('scan.errorAudioMsg'));
+        Alert.alert(
+          t('scan.errorAudio'),
+          status === 402 ? t('scan.errorAudioQuota') : t('scan.errorAudioMsg')
+        );
       }
     }
   };
@@ -303,6 +311,7 @@ export default function ScanScreen() {
   const handlePostScanInteractivePrompt = async () => {
     // Reset état audio du monument précédent
     prefetchGenRef.current += 1;
+    ttsUnavailableRef.current = null;
     mainAudioUriRef.current = null;
     setMainAudioUri(null);
     setAudioReady(false);
@@ -348,6 +357,12 @@ export default function ScanScreen() {
     const uri = mainAudioUriRef.current;
     if (uri) {
       await playGuideFromUri(uri);
+      return;
+    }
+    if (ttsUnavailableRef.current === 'quota') {
+      setLoadingAudio(false);
+      setIsWaitingForPrefetch(false);
+      Alert.alert(t('scan.errorAudio'), t('scan.errorAudioQuota'));
       return;
     }
 
@@ -481,7 +496,9 @@ export default function ScanScreen() {
       const playUri = await resolvePlayableAudioUri(base64, `rag_answer_${Date.now()}.mp3`);
       await playGuideFromUri(playUri);
     } catch (e) {
-      console.error('TTS réponse RAG:', e?.message || e);
+      if (e?.response?.status !== 402) {
+        console.warn('TTS réponse RAG:', e?.message || e);
+      }
     } finally {
       setLoadingAudio(false);
     }
@@ -816,11 +833,36 @@ export default function ScanScreen() {
                         {analysisResult.title}
                       </Text>
 
-                      <Image
-                        source={monumentImageSource(analysisResult.image_url)}
-                        style={styles.heroImage}
-                        resizeMode="cover"
-                      />
+                      {(() => {
+                        const gallery = (
+                          analysisResult.image_urls?.length
+                            ? analysisResult.image_urls
+                            : analysisResult.image_url
+                              ? [analysisResult.image_url]
+                              : []
+                        ).filter(Boolean);
+                        if (!gallery.length) return null;
+                        return (
+                          <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            style={{ marginBottom: 8 }}
+                            contentContainerStyle={{ gap: 8 }}
+                          >
+                            {gallery.map((uri) => (
+                              <Image
+                                key={uri}
+                                source={monumentImageSource(uri)}
+                                style={[
+                                  styles.heroImage,
+                                  gallery.length > 1 ? { width: 260 } : null,
+                                ]}
+                                resizeMode="cover"
+                              />
+                            ))}
+                          </ScrollView>
+                        );
+                      })()}
 
                       {(showInviteBanner || isListening) && (
                         <View

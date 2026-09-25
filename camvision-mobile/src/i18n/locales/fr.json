@@ -77,7 +77,16 @@
     "cancel": "Annuler",
     "about": "À propos",
     "aboutBody": "CAMVISION TOUR — guide culturel intelligent pour découvrir le patrimoine camerounais par la vision, la carte et l'audio.",
-    "version": "Version {{version}}"
+    "version": "Version {{version}}",
+    "account": "Compte",
+    "guest": "Visiteur",
+    "guestHint": "Connectez-vous pour synchroniser vos favoris.",
+    "login": "Se connecter",
+    "logout": "Se déconnecter",
+    "email": "Email",
+    "password": "Mot de passe",
+    "loginSubmit": "Connexion",
+    "loginError": "Email ou mot de passe incorrect."
   },
   "map": {
     "title": "Carte",
@@ -144,15 +153,6 @@
     "tourDur240": "4 h",
     "themeFood": "Gastronomie"
   },
-  "profile": {
-    "title": "Profil",
-    "subtitle": "Langue, centres d'intérêt, historique et favoris.",
-    "language": "Langue de l'application",
-    "theme": "Apparence",
-    "themeLight": "Clair",
-    "themeDark": "Sombre",
-    "themeSystem": "Système"
-  },
   "scan": {
     "cameraPermission": "Permission d'accéder à la caméra requise.",
     "allowCamera": "Autoriser la caméra",
@@ -167,6 +167,7 @@
     "errorServer": "Impossible de contacter le serveur d'analyse.",
     "errorAudio": "Erreur Audio",
     "errorAudioMsg": "Impossible de lire la synthèse vocale ElevenLabs.",
+    "errorAudioQuota": "Guide vocal indisponible : quota ElevenLabs épuisé ou voix payante. Le scan et le texte restent utilisables.",
     "guideTitle": "Guide vocal ElevenLabs",
     "guideWaiting": "En attente de confirmation",
     "guideReady": "Écoute haute fidélité · {{lang}}",

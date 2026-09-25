@@ -28,7 +28,7 @@ import {
 } from './src/services/notificationService';
 
 /** Vidéo démo : forcer branding → langues à chaque lancement. Remettre à false après. */
-const FORCE_DEMO_ONBOARDING = false;
+const FORCE_DEMO_ONBOARDING = true;
 
 const Tab = createBottomTabNavigator();
 const navigationRef = createNavigationContainerRef();

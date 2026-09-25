@@ -142,7 +142,16 @@
     "cancel": "إلغاء",
     "about": "حول",
     "aboutBody": "CAMVISION TOUR — دليل ثقافي ذكي لتراث الكاميرون.",
-    "version": "الإصدار {{version}}"
+    "version": "الإصدار {{version}}",
+    "account": "الحساب",
+    "guest": "زائر",
+    "guestHint": "سجّل الدخول لمزامنة المفضلة.",
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "email": "البريد",
+    "password": "كلمة المرور",
+    "loginSubmit": "دخول",
+    "loginError": "البريد أو كلمة المرور غير صحيحة."
   },
   "scan": {
     "cameraPermission": "إذن الوصول إلى الكاميرا مطلوب.",
@@ -158,6 +167,7 @@
     "errorServer": "تعذر الاتصال بخادم التحليل.",
     "errorAudio": "خطأ في الصوت",
     "errorAudioMsg": "تعذر تشغيل الدليل الصوتي ElevenLabs.",
+    "errorAudioQuota": "الدليل الصوتي غير متاح: نفاد حصة ElevenLabs أو صوت مدفوع. المسح والنص ما زالا يعملان.",
     "guideTitle": "دليل ElevenLabs الصوتي",
     "guideWaiting": "في انتظار التأكيد",
     "guideReady": "استماع عالي الجودة · {{lang}}",

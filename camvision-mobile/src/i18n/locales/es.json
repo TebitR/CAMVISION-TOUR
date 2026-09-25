@@ -142,7 +142,16 @@
     "cancel": "Cancelar",
     "about": "Acerca de",
     "aboutBody": "CAMVISION TOUR — guía cultural inteligente del patrimonio camerunés.",
-    "version": "Versión {{version}}"
+    "version": "Versión {{version}}",
+    "account": "Cuenta",
+    "guest": "Visitante",
+    "guestHint": "Inicie sesión para sincronizar favoritos.",
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión",
+    "email": "Email",
+    "password": "Contraseña",
+    "loginSubmit": "Entrar",
+    "loginError": "Email o contraseña incorrectos."
   },
   "scan": {
     "cameraPermission": "Se requiere permiso de cámara.",
@@ -158,6 +167,7 @@
     "errorServer": "No se pudo contactar el servidor de análisis.",
     "errorAudio": "Error de audio",
     "errorAudioMsg": "No se pudo reproducir la guía vocal ElevenLabs.",
+    "errorAudioQuota": "Guía de voz no disponible: cuota de ElevenLabs agotada o voz de pago. El escaneo y el texto siguen funcionando.",
     "guideTitle": "Guía vocal ElevenLabs",
     "guideWaiting": "Esperando confirmación",
     "guideReady": "Escucha de alta fidelidad · {{lang}}",

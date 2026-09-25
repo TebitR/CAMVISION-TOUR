@@ -167,6 +167,10 @@ def seed_data():
             anecdotes=obj_info["anecdotes"],
             category=obj_info["category"],
             image_url=obj_info["image_url"],
+            image_urls=[
+                obj_info["image_url"],
+                *obj_info.get("extra_images", []),
+            ],
             region=obj_info["region"],
             city_name=obj_info["city_name"],
             latitude=obj_info["latitude"],

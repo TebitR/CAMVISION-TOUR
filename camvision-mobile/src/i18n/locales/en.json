@@ -142,7 +142,16 @@
     "cancel": "Cancel",
     "about": "About",
     "aboutBody": "CAMVISION TOUR — intelligent cultural guide to discover Cameroonian heritage through vision, map and audio.",
-    "version": "Version {{version}}"
+    "version": "Version {{version}}",
+    "account": "Account",
+    "guest": "Guest",
+    "guestHint": "Sign in to sync your favorites.",
+    "login": "Sign in",
+    "logout": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "loginSubmit": "Log in",
+    "loginError": "Incorrect email or password."
   },
   "scan": {
     "cameraPermission": "Camera access permission required.",
@@ -158,6 +167,7 @@
     "errorServer": "Unable to reach the analysis server.",
     "errorAudio": "Audio Error",
     "errorAudioMsg": "Unable to play ElevenLabs voice guide.",
+    "errorAudioQuota": "Voice guide unavailable: ElevenLabs quota exceeded or paid voice required. Scan and text still work.",
     "guideTitle": "ElevenLabs voice guide",
     "guideWaiting": "Waiting for confirmation",
     "guideReady": "High-fidelity listening · {{lang}}",

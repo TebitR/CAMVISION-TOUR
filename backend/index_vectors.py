@@ -1,32 +1,14 @@
-import os
 from sqlalchemy.orm import Session
 from database import SessionLocal
 from models import TouristObject
 from vision import get_vision_engine
-from main import get_qdrant_client, COLLECTION_NAME
+from services.vision_index import (
+    COLLECTION_NAME,
+    gallery_paths,
+    get_qdrant_client,
+    resolve_image_bytes,
+)
 from qdrant_client.models import PointStruct, VectorParams, Distance
-
-# Galerie multi-angles pour améliorer le matching (hors colonne DB)
-EXTRA_IMAGES_BY_CODE = {
-    "MON-REUNIF-001": [
-        "sample_images/monument_reunification.jpg",
-        "sample_images/monument_reunification_tour.jpg",
-        "sample_images/monument_reunification_statue.jpg",
-    ],
-}
-
-
-def resolve_image_bytes(image_url: str):
-    possible_paths = [
-        image_url,
-        os.path.join("/app", image_url),
-        os.path.join("/app/backend", image_url),
-    ]
-    for path in possible_paths:
-        if os.path.exists(path) and os.path.isfile(path):
-            with open(path, "rb") as f:
-                return f.read(), path
-    return None, None
 
 
 def display_name(obj):
@@ -65,13 +47,7 @@ def index_tourist_objects():
     points = []
     for obj in objects:
         name = display_name(obj)
-        extras = EXTRA_IMAGES_BY_CODE.get(obj.code, [])
-        image_list = []
-        if obj.image_url:
-            image_list.append(obj.image_url)
-        for img in extras:
-            if img not in image_list:
-                image_list.append(img)
+        image_list = gallery_paths(obj)
 
         if not image_list:
             print(f"Aucune image pour : {name}")
