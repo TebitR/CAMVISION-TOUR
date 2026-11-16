@@ -21,11 +21,16 @@
         "NSPhotoLibraryUsageDescription": "CAMVISION TOUR accède à vos photos pour analyser une image de monument importée."
       }
     },
+    "androidNavigationBar": {
+      "backgroundColor": "#ffffff",
+      "barStyle": "dark-content"
+    },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff",
+        "backgroundColor": "#06668C",
         "foregroundImage": "./assets/splash-accueil.png"
       },
+      "softwareKeyboardLayoutMode": "resize",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",

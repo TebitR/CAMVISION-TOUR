@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, DefaultTheme, DarkTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -20,6 +20,7 @@ import OnboardingScreen, {
   ONBOARDING_DONE_KEY,
 } from './src/screens/OnboardingScreen';
 import FloatingTabBar from './src/components/FloatingTabBar';
+import AndroidTabBar from './src/components/AndroidTabBar';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import {
   addNotificationResponseListener,
@@ -38,7 +39,13 @@ function MainTabNavigator() {
 
   return (
     <Tab.Navigator
-      tabBar={(props) => <FloatingTabBar {...props} />}
+      tabBar={(props) =>
+        Platform.OS === 'ios' ? (
+          <FloatingTabBar {...props} />
+        ) : (
+          <AndroidTabBar {...props} />
+        )
+      }
       screenOptions={{
         headerShown: false,
       }}

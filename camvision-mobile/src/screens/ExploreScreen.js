@@ -22,6 +22,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { resolveAppLanguage } from '../i18n';
 import { getApiUrl } from '../config';
 import { monumentImageSource } from '../utils/imageUtils';
+import { tabOverlayPadding } from '../utils/layout';
 import MapMonumentSheet from '../components/MapMonumentSheet';
 
 export default function ExploreScreen() {
@@ -190,7 +191,7 @@ export default function ExploreScreen() {
           renderItem={renderItem}
           contentContainerStyle={[
             styles.list,
-            { paddingBottom: 120 + Math.max(insets.bottom, 8) },
+            { paddingBottom: tabOverlayPadding(insets.bottom) },
             filtered.length === 0 && styles.listEmpty,
           ]}
           refreshControl={

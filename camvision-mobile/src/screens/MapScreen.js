@@ -24,6 +24,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { resolveAppLanguage } from '../i18n';
 import { getApiUrl } from '../config';
 import { monumentImageSource } from '../utils/imageUtils';
+import { mapDockTabPadding } from '../utils/layout';
 import {
   MAP_CATEGORY_FILTERS,
   filterMonumentsByCategory,
@@ -765,7 +766,7 @@ export default function MapScreen() {
     fetchNearby(mapRegion.latitude, mapRegion.longitude, { fromAreaSearch: true });
   };
 
-  const dockPadBottom = 88 + Math.max(insets.bottom, 8);
+  const dockPadBottom = mapDockTabPadding(insets.bottom);
   // Hauteur dock ≈ titre+cartes (220) + padding tab. bottom FAB doit être ≥ ce total.
   const listDockHeight = 220 + dockPadBottom;
   const mapBottomClearance = selected ? 310 : listDockHeight + 8;

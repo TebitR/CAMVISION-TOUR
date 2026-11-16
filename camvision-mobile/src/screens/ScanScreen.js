@@ -39,6 +39,7 @@ import MonumentAskBox from '../components/MonumentAskBox';
 import { useTheme } from '../theme/ThemeContext';
 import { monumentImageSource } from '../utils/imageUtils';
 import { getApiUrl } from '../config';
+import { scanTabClearance } from '../utils/layout';
 
 const API_URL = getApiUrl();
 const CONFIDENCE_THRESHOLD = 0.55;
@@ -95,7 +96,7 @@ export default function ScanScreen() {
   const route = useRoute();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const tabClearance = 72 + Math.max(insets.bottom, 8);
+  const tabClearance = scanTabClearance(insets.bottom);
   const mapIntentHandledRef = useRef(null);
 
   const [permission, requestPermission] = useCameraPermissions();

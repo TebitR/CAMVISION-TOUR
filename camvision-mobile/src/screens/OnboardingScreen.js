@@ -62,6 +62,7 @@ export default function OnboardingScreen({ onDone }) {
               key={lang.code}
               style={[
                 styles.row,
+                Platform.OS === 'android' && styles.rowAndroid,
                 {
                   backgroundColor: colors.card,
                   borderColor: active ? colors.primary : colors.border,
@@ -83,7 +84,11 @@ export default function OnboardingScreen({ onDone }) {
       </ScrollView>
 
       <TouchableOpacity
-        style={[styles.cta, { backgroundColor: colors.accent }]}
+        style={[
+          styles.cta,
+          Platform.OS === 'android' && styles.ctaAndroid,
+          { backgroundColor: colors.accent },
+        ]}
         onPress={confirm}
         accessibilityRole="button"
         accessibilityLabel={t('onboarding.continue')}
@@ -108,6 +113,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1.5,
   },
+  rowAndroid: {
+    borderRadius: 10,
+    elevation: 1,
+  },
   flag: { fontSize: 22, marginRight: 14 },
   label: { fontSize: 17, fontWeight: '700', flex: 1 },
   cta: {
@@ -116,6 +125,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minHeight: 52,
     justifyContent: 'center',
+  },
+  ctaAndroid: {
+    borderRadius: 10,
+    elevation: 3,
   },
   ctaText: { color: '#fff', fontWeight: '800', fontSize: 15 },
 });

@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../theme/ThemeContext';
+import { tabOverlayPadding } from '../utils/layout';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const CAROUSEL_W = SCREEN_W - 40;
@@ -90,7 +91,7 @@ export default function HomeScreen({ navigation }) {
         styles.content,
         {
           paddingTop: insets.top + 16,
-          paddingBottom: 110 + Math.max(insets.bottom, 8),
+          paddingBottom: tabOverlayPadding(insets.bottom),
         },
       ]}
       showsVerticalScrollIndicator={false}

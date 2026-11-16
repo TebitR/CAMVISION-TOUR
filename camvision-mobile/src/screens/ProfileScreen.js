@@ -18,6 +18,7 @@ import Constants from 'expo-constants';
 import LanguageSelector from '../components/LanguageSelector';
 import { useTheme } from '../theme/ThemeContext';
 import { clearNearbyCache } from '../services/nearbyCache';
+import { tabOverlayPadding } from '../utils/layout';
 import {
   clearUserSession,
   loadUserSession,
@@ -117,7 +118,7 @@ export default function ProfileScreen() {
         styles.content,
         {
           paddingTop: insets.top + 24,
-          paddingBottom: 120 + Math.max(insets.bottom, 8),
+          paddingBottom: tabOverlayPadding(insets.bottom),
         },
       ]}
       keyboardShouldPersistTaps="handled"
